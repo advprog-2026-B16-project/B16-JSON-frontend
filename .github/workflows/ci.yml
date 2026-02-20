@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  build-and-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
     concurrency:
       group: frontend-ci-${{ github.ref }}
@@ -21,7 +21,6 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # use 'x' to follow minor updates (20.x)
           node-version: '20.x'
           cache: 'npm'
 
@@ -31,15 +30,18 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test
+        run: |
+          echo "Checking for test script in package.json..."
+          if node -e "process.exit(require('./package.json').scripts && require('./package.json').scripts.test ? 0 : 1)"; then
+            echo "Found test script — running npm test"
+            npm test
+          else
+            echo "No test script found — installing Jest temporarily and running it (will pass if no tests)."
+            npm install --no-save jest@29
+            npx jest --passWithNoTests
+          fi
+
       - name: Build
         run: npm run build
 
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
