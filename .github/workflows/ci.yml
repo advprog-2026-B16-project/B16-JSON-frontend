@@ -2,21 +2,27 @@ name: CI - Frontend (Next.js → Vercel)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main, ci-cd, staging ]
   pull_request:
-    branches: [ "main" ]
+
+permissions:
+  contents: read
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: frontend-ci-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # use 'x' to follow minor updates (20.x)
+          node-version: '20.x'
           cache: 'npm'
 
       - name: Install dependencies
