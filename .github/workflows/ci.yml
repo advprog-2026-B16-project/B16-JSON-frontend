@@ -1,4 +1,4 @@
-name: CI - Frontend (Next.js → Vercel)
+name: CI - Frontend 
 
 on:
   push:
