@@ -1,79 +1,74 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import HomePage from '../page';
+import { useRouter } from 'next/navigation';
 
-// Mock the global fetch function
-global.fetch = jest.fn();
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}));
 
 describe('HomePage', () => {
+  const mockPush = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  it('renders the page title', () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'Hello from backend',
+    (useRouter as jest.Mock).mockReturnValue({
+      push: mockPush,
     });
-
-    render(<HomePage />);
-
-    expect(screen.getByText('Next.js Frontend')).toBeInTheDocument();
-  });
-
-  it('renders "Message from Backend:" label', () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'Hello from backend',
-    });
-
-    render(<HomePage />);
-
-    expect(screen.getByText(/Message from Backend:/i)).toBeInTheDocument();
-  });
-
-  it('displays message from backend on successful fetch', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'Hello from backend',
-    });
-
-    render(<HomePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Hello from backend')).toBeInTheDocument();
+    // Mock localStorage
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        clear: jest.fn(),
+      },
+      writable: true,
     });
   });
 
-  it('calls the correct API endpoint', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'some data',
-    });
-
+  it('renders the title JSON', () => {
     render(<HomePage />);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${process.env.NEXT_PUBLIC_API_URL}/user/getUsers`
-      );
-    });
+    const elements = screen.getAllByText('JSON');
+    expect(elements.length).toBeGreaterThan(0);
+    expect(elements[0]).toBeInTheDocument();
   });
 
-  it('displays error message when fetch fails', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-
+  it('renders the full title Jastip Online Nasional', () => {
     render(<HomePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Failed to connect to backend.')).toBeInTheDocument();
-    });
+    const elements = screen.getAllByText(/Jastip Online Nasional/i);
+    expect(elements.length).toBeGreaterThan(0);
+    expect(elements[0]).toBeInTheDocument();
   });
 
-  it('shows empty message initially before fetch completes', () => {
-    (global.fetch as jest.Mock).mockImplementation(
-      () => new Promise(() => {}) // never resolves
-    );
-
+  it('renders the Explore Now button', () => {
     render(<HomePage />);
+    expect(screen.getByRole('button', { name: /Explore Now/i })).toBeInTheDocument();
+  });
 
-    // message state starts as empty string
-    expect(screen.getByText(/Message from Backend:/i)).toBeInTheDocument();
+  it('redirects to /login when clicking Explore Now and not authenticated', () => {
+    (window.localStorage.getItem as jest.Mock).mockReturnValue(null);
+    render(<HomePage />);
+    
+    const exploreButton = screen.getByRole('button', { name: /Explore Now/i });
+    fireEvent.click(exploreButton);
+    
+    expect(mockPush).toHaveBeenCalledWith('/login');
+  });
+
+  it('redirects to /dashboard when clicking Explore Now and authenticated', () => {
+    (window.localStorage.getItem as jest.Mock).mockReturnValue('mock-token');
+    render(<HomePage />);
+    
+    const exploreButton = screen.getByRole('button', { name: /Explore Now/i });
+    fireEvent.click(exploreButton);
+    
+    expect(mockPush).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('renders feature cards', () => {
+    render(<HomePage />);
+    expect(screen.getByText('Aman & Terpercaya')).toBeInTheDocument();
+    expect(screen.getByText('Jangkauan Luas')).toBeInTheDocument();
+    expect(screen.getByText('Proses Cepat')).toBeInTheDocument();
   });
 });
-
