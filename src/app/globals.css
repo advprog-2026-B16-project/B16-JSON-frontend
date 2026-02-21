@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
   --main: #fbbf24;
   --border: #000000;
   --card: #ffffff;
@@ -18,16 +18,6 @@
   --font-mono: var(--font-geist-mono);
   --shadow-neo: 5px 5px 0px 0px #000;
   --shadow-neo-hover: 2px 2px 0px 0px #000;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #000000;
-    --foreground: #ffffff;
-    --main: #fbbf24;
-    --border: #ffffff;
-    --card: #1a1a1a;
-  }
 }
 
 body {

@@ -47,12 +47,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-background text-black flex flex-col items-center justify-center p-6">
       <motion.button
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         onClick={() => router.push('/')}
-        className="absolute top-8 left-8 flex items-center gap-2 font-bold hover:underline decoration-4"
+        className="absolute top-8 left-8 flex items-center gap-2 font-bold hover:underline decoration-4 text-black"
       >
         <ArrowLeft size={20} /> Back to Home
       </motion.button>
@@ -62,23 +62,23 @@ export default function LoginPage() {
         animate={{ y: 0, opacity: 1 }}
         className="w-full max-w-md"
       >
-        <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000]">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="bg-main border-2 border-black p-2 shadow-[4px_4px_0px_0px_#000]">
+        <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] text-black">
+          <div className="flex items-center gap-3 mb-8 text-black">
+            <div className="bg-main border-2 border-black p-2 shadow-[4px_4px_0px_0px_#000] text-black">
               <LogIn size={32} />
             </div>
-            <h1 className="text-4xl font-black uppercase">Login</h1>
+            <h1 className="text-4xl font-black uppercase text-black">Login</h1>
           </div>
 
           {error && (
-            <div className="bg-red-400 border-2 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000]">
+            <div className="bg-red-400 border-2 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000] text-black">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-lg font-black mb-2 uppercase italic">Email Address</label>
+              <label htmlFor="email" className="block text-lg font-black mb-2 uppercase italic text-black">Email Address</label>
               <input
                 id="email"
                 type="email"
@@ -87,12 +87,12 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="you@example.com"
-                className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-cyan-50 transition-colors shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-[4px] focus:translate-y-[4px]"
+                className="w-full bg-white border-4 border-black p-4 font-bold text-black focus:outline-none focus:bg-cyan-50 transition-colors shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-[4px] focus:translate-y-[4px]"
               />
             </div>
 
             <div className="relative">
-              <label htmlFor="password" className="block text-lg font-black mb-2 uppercase italic">Password</label>
+              <label htmlFor="password" className="block text-lg font-black mb-2 uppercase italic text-black">Password</label>
               <div className="relative">
                 <input
                   id="password"
@@ -102,12 +102,12 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-pink-50 transition-colors shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-[4px] focus:translate-y-[4px]"
+                  className="w-full bg-white border-4 border-black p-4 font-bold text-black focus:outline-none focus:bg-pink-50 transition-colors shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-[4px] focus:translate-y-[4px]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 rounded"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 rounded text-black"
                 >
                   {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                 </button>
@@ -117,17 +117,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="neo-button w-full text-2xl py-4 flex items-center justify-center gap-3 mt-8"
+              className="neo-button w-full text-2xl py-4 flex items-center justify-center gap-3 mt-8 text-black"
             >
               {isLoading ? 'Logging in...' : 'Enter JSON'} <LogIn size={24} strokeWidth={3} />
             </button>
           </form>
 
-          <div className="mt-8 pt-8 border-t-4 border-black text-center">
-            <p className="font-bold text-lg mb-4">New to JSON?</p>
+          <div className="mt-8 pt-8 border-t-4 border-black text-center text-black">
+            <p className="font-bold text-lg mb-4 text-black">New to JSON?</p>
             <button
               onClick={() => router.push('/register')}
-              className="bg-cyan-300 border-4 border-black py-3 px-6 font-black uppercase flex items-center justify-center gap-2 mx-auto shadow-[4px_4px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
+              className="bg-cyan-300 border-4 border-black py-3 px-6 font-black uppercase flex items-center justify-center gap-2 mx-auto shadow-[4px_4px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all text-black"
             >
               <UserPlus size={20} /> Create an Account
             </button>
