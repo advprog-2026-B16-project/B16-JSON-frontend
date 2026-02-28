@@ -80,7 +80,7 @@ export default function AccountPage() {
             </div>
             
             <button 
-              onClick={() => router.push('/dashboard/account/jastiper-upgrade')}
+              onClick={() => {isJastiper ? router.push('/dashboard/catalogue') : router.push('/dashboard/account/jastiper-upgrade')}}
               className={`whitespace-nowrap neo-button flex items-center gap-2 text-xl px-8 py-5 ${isJastiper ? 'bg-yellow-400' : 'bg-main'}`}
             >
               {isJastiper ? "View Pro Status" : (

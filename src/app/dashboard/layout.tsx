@@ -58,7 +58,6 @@ export default function DashboardLayout({
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_role');
     router.push('/login');
   };
 

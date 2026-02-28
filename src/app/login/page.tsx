@@ -37,8 +37,9 @@ export default function LoginPage() {
       }
 
       const data = await response.json();
+//       console.log(data.user.username)
       localStorage.setItem('auth_token', data.token);
-      localStorage.removeItem('user_role'); // Ensure default is not upgraded
+      localStorage.setItem('user_role', data.user.role);
       router.push('/dashboard/home');
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.');
