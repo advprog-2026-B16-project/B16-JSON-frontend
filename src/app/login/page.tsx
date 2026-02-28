@@ -25,7 +25,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -38,7 +38,8 @@ export default function LoginPage() {
 
       const data = await response.json();
       localStorage.setItem('auth_token', data.token);
-      router.push('/dashboard');
+      localStorage.removeItem('user_role'); // Ensure default is not upgraded
+      router.push('/dashboard/home');
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.');
     } finally {
