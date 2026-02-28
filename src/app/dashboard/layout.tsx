@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home,
   User, 
+  Users,
   ShoppingBag, 
   Repeat, 
   Settings, 
@@ -28,6 +29,7 @@ export default function DashboardLayout({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isJastiper, setIsJastiper] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -37,6 +39,7 @@ export default function DashboardLayout({
       router.push('/login');
     } else {
       setIsJastiper(role === 'JASTIPER');
+      setIsAdmin(role === 'ADMIN');
       setIsLoading(false);
     }
 
@@ -44,6 +47,7 @@ export default function DashboardLayout({
     const handleStorageChange = () => {
       const updatedRole = localStorage.getItem('user_role');
       setIsJastiper(updatedRole === 'JASTIPER');
+      setIsAdmin(updatedRole === 'ADMIN');
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -72,6 +76,10 @@ export default function DashboardLayout({
   const jastiperItems = [
     { label: 'Catalogue', icon: <BookOpen size={20} />, href: '/dashboard/catalogue' },
     { label: 'Orders', icon: <ClipboardList size={20} />, href: '/dashboard/orders' },
+  ];
+
+  const adminItems = [
+    { label: 'Admin Panel', icon: <ShieldCheck size={20} />, href: '/dashboard/admin' },
   ];
 
   if (isLoading) {
@@ -119,6 +127,22 @@ export default function DashboardLayout({
                     key={item.href}
                     href={item.href}
                     className={`flex items-center gap-2 px-3 py-2 border-2 border-black bg-yellow-100 hover:bg-yellow-200 transition-all ${pathname === item.href ? 'bg-yellow-400 shadow-[2px_2px_0px_0px_#000]' : 'shadow-[2px_2px_0px_0px_#000]'}`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+              </>
+            )}
+
+            {isAdmin && (
+              <>
+                <div className="w-px h-8 bg-black/20 mx-1" />
+                {adminItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 px-3 py-2 border-2 border-black bg-purple-100 hover:bg-purple-200 transition-all ${pathname === item.href ? 'bg-purple-400 shadow-[2px_2px_0px_0px_#000]' : 'shadow-[2px_2px_0px_0px_#000]'}`}
                   >
                     {item.icon}
                     <span>{item.label}</span>
@@ -182,6 +206,25 @@ export default function DashboardLayout({
                       href={item.href}
                       onClick={() => setIsMenuOpen(false)}
                       className={`flex items-center gap-3 p-4 border-4 border-black bg-yellow-100 ${pathname === item.href ? 'bg-yellow-400 shadow-none translate-x-1 translate-y-1' : 'shadow-[4px_4px_0px_0px_#000]'}`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Link>
+                  ))}
+                </>
+              )}
+
+              {isAdmin && (
+                <>
+                  <p className="text-xs uppercase text-purple-600 mt-4 mb-[-10px] flex items-center gap-2">
+                    <ShieldCheck size={16} /> Admin Command Center
+                  </p>
+                  {adminItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center gap-3 p-4 border-4 border-black bg-purple-100 ${pathname === item.href ? 'bg-purple-400 shadow-none translate-x-1 translate-y-1' : 'shadow-[4px_4px_0px_0px_#000]'}`}
                     >
                       {item.icon}
                       {item.label}
