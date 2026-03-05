@@ -21,7 +21,10 @@ export default function HomePage() {
   useEffect(() => {
     // Mock authentication check
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    setIsAuthenticated(!!token);
+    const timer = setTimeout(() => {
+      setIsAuthenticated(!!token);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleExplore = () => {
