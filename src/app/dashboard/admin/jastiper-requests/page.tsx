@@ -15,8 +15,11 @@ export default function JastiperRequestsPage() {
     if (role !== 'ADMIN') {
       router.push('/dashboard/home');
     } else {
-      setIsAdmin(true);
-      setIsLoading(false);
+      const timer = setTimeout(() => {
+        setIsAdmin(true);
+        setIsLoading(false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [router]);
 
@@ -24,11 +27,21 @@ export default function JastiperRequestsPage() {
     return <div className="min-h-screen bg-white flex items-center justify-center font-black text-2xl">LOADING REQUESTS...</div>;
   }
 
-//   // Mock requests for UI demonstration
-//   const requests = [
-//     { id: 'REQ-001', name: 'John Doe', date: '2024-02-27', reason: 'I travel to Japan often.', status: 'Pending' },
-//     { id: 'REQ-002', name: 'Sarah Wilson', date: '2024-02-26', reason: 'Frequent flyer in SE Asia.', status: 'Pending' },
-//   ];
+  // Mock requests for UI demonstration
+  const requests = [
+    { 
+      id: 'REQ-001', 
+      requesterUser: { username: 'John Doe' }, 
+      createdAt: '2024-02-27', 
+      credential: 'I travel to Japan often.' 
+    },
+    { 
+      id: 'REQ-002', 
+      requesterUser: { username: 'Sarah Wilson' }, 
+      createdAt: '2024-02-26', 
+      credential: 'Frequent flyer in SE Asia.' 
+    },
+  ];
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -79,7 +92,7 @@ export default function JastiperRequestsPage() {
 
               <div className="md:col-span-2">
                 <p className="text-xs uppercase font-black text-gray-500 mb-1">Upgrade Reason</p>
-                <p className="font-bold italic">"{request.credential}"</p>
+                <p className="font-bold italic">&quot;{request.credential}&quot;</p>
               </div>
             </div>
 
