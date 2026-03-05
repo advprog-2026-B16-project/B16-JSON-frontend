@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { 
   User, 
   Mail, 
@@ -22,7 +21,10 @@ export default function AccountPage() {
 
   useEffect(() => {
     const role = localStorage.getItem('user_role');
-    setIsJastiper(role === 'JASTIPER');
+    if (role === 'JASTIPER') {
+      const timer = setTimeout(() => setIsJastiper(true), 0);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   return (
@@ -80,7 +82,13 @@ export default function AccountPage() {
             </div>
             
             <button 
-              onClick={() => {isJastiper ? router.push('/dashboard/catalogue') : router.push('/dashboard/account/jastiper-upgrade')}}
+              onClick={() => {
+                if (isJastiper) {
+                  router.push('/dashboard/catalogue');
+                } else {
+                  router.push('/dashboard/account/jastiper-upgrade');
+                }
+              }}
               className={`whitespace-nowrap neo-button flex items-center gap-2 text-xl px-8 py-5 ${isJastiper ? 'bg-yellow-400' : 'bg-main'}`}
             >
               {isJastiper ? "View Pro Status" : (
