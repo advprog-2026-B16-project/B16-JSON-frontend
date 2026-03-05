@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Users, Search, Filter, ShieldCheck, Mail, ShieldAlert } from 'lucide-react';
+import { Users, Search, Filter, Mail } from 'lucide-react';
 
 export default function AllUsersPage() {
   const router = useRouter();
@@ -15,8 +15,11 @@ export default function AllUsersPage() {
     if (role !== 'ADMIN') {
       router.push('/dashboard/home');
     } else {
-      setIsAdmin(true);
-      setIsLoading(false);
+      const timer = setTimeout(() => {
+        setIsAdmin(true);
+        setIsLoading(false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [router]);
 
