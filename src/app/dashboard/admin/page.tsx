@@ -19,6 +19,25 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 
+interface UserData {
+  id: number | string;
+  name?: string;
+  username?: string;
+  email: string;
+  role: string;
+  status: string;
+}
+
+interface UpgradeRequest {
+  id: string;
+  name?: string;
+  fullName?: string;
+  date?: string;
+  reason?: string;
+  experience?: string;
+  status: string;
+}
+
 function AdminPortalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,8 +45,8 @@ function AdminPortalContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const [users, setUsers] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [requests, setRequests] = useState<UpgradeRequest[]>([]);
 
   const fetchData = async () => {
     const token = localStorage.getItem('auth_token');
@@ -94,10 +113,11 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
     // Update local state instead of a full re-fetch to improve Apdex/Performance
     setRequests(prev => prev.filter(req => req.id !== requestId));
 
-  } catch (err: any) {
+  } catch (err) {
     // Alert is okay for prototypes, but toast notifications are better for UX
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
     console.error("Action error:", err);
-    alert(err.message);
+    alert(errorMessage);
   } finally {
     setIsActionLoading(false);
   }
@@ -108,8 +128,11 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
     if (role !== 'ADMIN') {
       router.push('/dashboard/home');
     } else {
-      setIsAdmin(true);
-      fetchData();
+      const timer = setTimeout(() => {
+        setIsAdmin(true);
+        fetchData();
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     const tab = searchParams.get('tab');
@@ -169,7 +192,7 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
         {activeTab === 'overview' && (
           <motion.div key="overview" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-12">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {stats.map((stat, idx) => (
+              {stats.map((stat) => (
                 <div key={stat.label} className={`${stat.color} border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000]`}>
                   <div className="flex justify-between items-start mb-4">
                     <div className="bg-white border-2 border-black p-2 shadow-[2px_2px_0px_0px_#000]">{stat.icon}</div>
@@ -253,7 +276,7 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
 
         {activeTab === 'requests' && (
           <motion.div key="requests" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-            {requests.map((request, idx) => (
+            {requests.map((request) => (
               <div key={request.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] relative overflow-hidden text-black">
                 <div className="absolute top-0 right-0 bg-black text-white px-4 py-1 font-black italic">{request.id}</div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -270,7 +293,7 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-xs uppercase font-black text-gray-500 mb-1">Reason</p>
-                    <p className="font-bold italic">"{request.reason || request.experience}"</p>
+                    <p className="font-bold italic">&quot;{request.reason || request.experience}&quot;</p>
                   </div>
                 </div>
                 <div className="mt-8 pt-6 border-t-4 border-black flex flex-wrap justify-between items-center gap-4">
@@ -278,14 +301,14 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
                   <div className="flex gap-4">
                     <button 
                       disabled={isActionLoading}
-                      onClick={() => handleRequestAction(request.id, 'reject')}
+                      onClick={() => handleRequestAction(request.id, 'REJECTED')}
                       className="flex items-center gap-2 bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
                     >
                       <XCircle size={20} /> REJECT
                     </button>
                     <button 
                       disabled={isActionLoading}
-                      onClick={() => handleRequestAction(request.id, 'approve')}
+                      onClick={() => handleRequestAction(request.id, 'ACCEPTED')}
                       className="flex items-center gap-2 bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
                     >
                       <CheckCircle size={20} /> APPROVE
