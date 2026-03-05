@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home,
   User, 
-  Users,
   ShoppingBag, 
   Repeat, 
   Settings, 
@@ -38,26 +37,29 @@ export default function DashboardLayout({
     if (!token) {
       router.push('/login');
     } else {
-      setIsJastiper(role === 'JASTIPER');
-      setIsAdmin(role === 'ADMIN');
-      setIsLoading(false);
+      const timer = setTimeout(() => {
+        setIsJastiper(role === 'JASTIPER');
+        setIsAdmin(role === 'ADMIN');
+        setIsLoading(false);
+      }, 0);
+      
+      // Listen for storage changes to update role instantly if changed in settings
+      const handleStorageChange = () => {
+        const updatedRole = localStorage.getItem('user_role');
+        setIsJastiper(updatedRole === 'JASTIPER');
+        setIsAdmin(updatedRole === 'ADMIN');
+      };
+
+      window.addEventListener('storage', handleStorageChange);
+      // Custom event for same-window updates
+      window.addEventListener('roleUpdated', handleStorageChange);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('roleUpdated', handleStorageChange);
+      };
     }
-
-    // Listen for storage changes to update role instantly if changed in settings
-    const handleStorageChange = () => {
-      const updatedRole = localStorage.getItem('user_role');
-      setIsJastiper(updatedRole === 'JASTIPER');
-      setIsAdmin(updatedRole === 'ADMIN');
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    // Custom event for same-window updates
-    window.addEventListener('roleUpdated', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('roleUpdated', handleStorageChange);
-    };
   }, [router]);
 
   const handleLogout = () => {
