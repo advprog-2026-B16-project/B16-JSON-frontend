@@ -1,12 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { 
   UserCircle, 
   Bell, 
   Lock, 
-  ChevronRight,
   Globe,
   Settings,
   HelpCircle
