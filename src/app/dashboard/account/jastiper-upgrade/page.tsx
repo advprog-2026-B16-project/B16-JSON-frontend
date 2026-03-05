@@ -33,7 +33,10 @@ export default function JastiperUpgradePage() {
 
   useEffect(() => {
     const role = localStorage.getItem('user_role');
-    setIsJastiper(role === 'JASTIPER');
+    if (role === 'JASTIPER') {
+      const timer = setTimeout(() => setIsJastiper(true), 0);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
