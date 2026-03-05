@@ -4,13 +4,20 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Search, 
-  Filter, 
   MapPin, 
-  Tag, 
   ArrowRight,
-  ShoppingBag,
   Plus
 } from 'lucide-react';
+
+interface MarketplaceItem {
+  id: number;
+  title: string;
+  origin: string;
+  price: string;
+  category: string;
+  color: string;
+  requester: string;
+}
 
 export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,7 +137,7 @@ export default function MarketplacePage() {
   );
 }
 
-function MarketplaceCard({ item }: { item: any }) {
+function MarketplaceCard({ item }: { item: MarketplaceItem }) {
   return (
     <motion.div 
       whileHover={{ y: -10 }}
