@@ -41,8 +41,9 @@ export default function LoginPage() {
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user_role', data.user.role);
       router.push('/dashboard/home');
-    } catch (err: any) {
-      setError(err.message || 'An error occurred. Please try again.');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
