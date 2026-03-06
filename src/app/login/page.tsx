@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { LogIn, UserPlus, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -36,10 +37,6 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      const data = await response.json();
-//       console.log(data.user.username)
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('user_role', data.user.role);
       router.push('/dashboard/home');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred. Please try again.';
