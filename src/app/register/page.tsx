@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { UserPlus, LogIn, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const passwordRegex = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\S+$).{8,}$/;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,11 +35,16 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!passwordRegex.test(formData.password)) {
+      setError('Password must be at least 8 characters long, contain at least one digit, one lowercase letter, one uppercase letter, one special character (@#$%^&+=!), and have no whitespace.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { confirmPassword, ...submitData } = formData;
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
+      const response = await apiFetch('/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
       });
 
@@ -134,6 +142,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-black"
                 >
                   {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
