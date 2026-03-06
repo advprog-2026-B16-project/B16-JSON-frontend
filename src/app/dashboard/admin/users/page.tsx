@@ -1,32 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Users, Search, Filter, Mail } from 'lucide-react';
 
 export default function AllUsersPage() {
-  const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
-      router.push('/dashboard/home');
-    } else {
-      const timer = setTimeout(() => {
-        setIsAdmin(true);
-        setIsLoading(false);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [router]);
-
-  if (isLoading || !isAdmin) {
-    return <div className="min-h-screen bg-white flex items-center justify-center font-black text-2xl">LOADING USERS...</div>;
-  }
-
   // Mock users for UI demonstration
   const users = [
     { id: 1, name: 'Alice Smith', email: 'alice@example.com', role: 'ADMIN', status: 'Active' },
@@ -57,10 +34,10 @@ export default function AllUsersPage() {
           <input 
             type="text" 
             placeholder="Search users by name or email..." 
-            className="w-full pl-10 pr-4 py-2 border-4 border-black font-bold focus:outline-none"
+            className="w-full pl-10 pr-4 py-2 border-4 border-black font-bold focus:outline-none text-black"
           />
         </div>
-        <button className="bg-white border-4 border-black px-6 py-2 font-black flex items-center gap-2 hover:bg-gray-100 shadow-[4px_4px_0px_0px_#000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+        <button className="bg-white border-4 border-black px-6 py-2 font-black flex items-center gap-2 hover:bg-gray-100 shadow-[4px_4px_0px_0px_#000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-black">
           <Filter size={20} /> Filter
         </button>
       </div>
@@ -76,7 +53,7 @@ export default function AllUsersPage() {
               <th className="p-4 border-b-4 border-black text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="font-bold">
+          <tbody className="font-bold text-black">
             {users.map((user) => (
               <tr key={user.id} className="border-b-4 border-black hover:bg-purple-50 transition-colors">
                 <td className="p-4">

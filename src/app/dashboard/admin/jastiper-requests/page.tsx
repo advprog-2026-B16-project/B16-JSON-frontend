@@ -1,32 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ClipboardList, CheckCircle, XCircle, User, Calendar, ExternalLink } from 'lucide-react';
 
 export default function JastiperRequestsPage() {
-  const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
-      router.push('/dashboard/home');
-    } else {
-      const timer = setTimeout(() => {
-        setIsAdmin(true);
-        setIsLoading(false);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [router]);
-
-  if (isLoading || !isAdmin) {
-    return <div className="min-h-screen bg-white flex items-center justify-center font-black text-2xl">LOADING REQUESTS...</div>;
-  }
-
   // Mock requests for UI demonstration
   const requests = [
     { 
@@ -75,16 +52,16 @@ export default function JastiperRequestsPage() {
               <div className="md:col-span-1">
                 <p className="text-xs uppercase font-black text-gray-500 mb-1">Applicant</p>
                 <div className="flex items-center gap-2">
-                  <div className="bg-cyan-200 border-2 border-black p-1">
+                  <div className="bg-cyan-200 border-2 border-black p-1 text-black">
                     <User size={20} />
                   </div>
-                  <span className="font-black text-lg">{request.requesterUser.username}</span>
+                  <span className="font-black text-lg text-black">{request.requesterUser.username}</span>
                 </div>
               </div>
 
               <div className="md:col-span-1">
                 <p className="text-xs uppercase font-black text-gray-500 mb-1">Date Submitted</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-black">
                   <Calendar size={18} />
                   <span className="font-bold">{request.createdAt}</span>
                 </div>
@@ -92,22 +69,22 @@ export default function JastiperRequestsPage() {
 
               <div className="md:col-span-2">
                 <p className="text-xs uppercase font-black text-gray-500 mb-1">Upgrade Reason</p>
-                <p className="font-bold italic">&quot;{request.credential}&quot;</p>
+                <p className="font-bold italic text-black">&quot;{request.credential}&quot;</p>
               </div>
             </div>
 
             <div className="mt-8 pt-6 border-t-4 border-black flex flex-wrap justify-between items-center gap-4">
               <div className="flex gap-2">
-                <button className="flex items-center gap-2 bg-main border-4 border-black px-4 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+                <button className="flex items-center gap-2 bg-main border-4 border-black px-4 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-black">
                   View Profile <ExternalLink size={16} />
                 </button>
               </div>
               
               <div className="flex gap-4">
-                <button className="flex items-center gap-2 bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+                <button className="flex items-center gap-2 bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-black">
                   <XCircle size={20} /> REJECT
                 </button>
-                <button className="flex items-center gap-2 bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+                <button className="flex items-center gap-2 bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-black">
                   <CheckCircle size={20} /> APPROVE
                 </button>
               </div>
@@ -117,7 +94,7 @@ export default function JastiperRequestsPage() {
 
         {requests.length === 0 && (
           <div className="bg-gray-100 border-4 border-black border-dashed p-12 text-center">
-            <p className="text-2xl font-black text-gray-400 uppercase">No pending requests found</p>
+            <p className="text-2xl font-black text-gray-400 uppercase text-black">No pending requests found</p>
           </div>
         )}
       </div>

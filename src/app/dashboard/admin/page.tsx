@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -39,11 +39,9 @@ interface UpgradeRequest {
   status: string;
 }
 
-function AdminPortalContent() {
+export default function AdminPortal() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState<UserData[]>([]);
@@ -51,97 +49,58 @@ function AdminPortalContent() {
 
   const fetchData = async () => {
     try {
-      // Fetch Users
       const usersRes = await apiFetch('/user/getUsers');
       if (usersRes.ok) {
-        setUsers(await usersRes.json());
-      } else {
-        throw new Error('Failed to fetch users');
+        const userData = await usersRes.json();
+        setUsers(userData || []);
       }
-
-      // Fetch Requests
       const requestsRes = await apiFetch('/upgrade-request/get-requests');
       if (requestsRes.ok) {
-        setRequests(await requestsRes.json());
-      } else {
-        throw new Error('Failed to fetch requests');
+        const requestData = await requestsRes.json();
+        setRequests(requestData || []);
       }
-      
     } catch (err) {
-      console.error('API Error, using fallback data:', err);
-      // Fallback Mock Data
+      console.error('API Error, using fallback:', err);
       setUsers([
         { id: 1, name: 'Alice Smith', email: 'alice@example.com', role: 'ADMIN', status: 'Active' },
         { id: 2, name: 'Bob Johnson', email: 'bob@example.com', role: 'JASTIPER', status: 'Active' },
-        { id: 3, name: 'Charlie Brown', email: 'charlie@example.com', role: 'USER', status: 'Active' },
-        { id: 4, name: 'Diana Prince', email: 'diana@example.com', role: 'USER', status: 'Suspended' },
       ]);
       setRequests([
-        { id: 'REQ-001', name: 'John Doe', date: '2024-02-27', reason: 'I travel to Japan often.', status: 'Pending' },
-        { id: 'REQ-002', name: 'Sarah Wilson', date: '2024-02-26', reason: 'Frequent flyer in SE Asia.', status: 'Pending' },
+        { id: 'REQ-001', name: 'John Doe', date: '2024-02-27', reason: 'I travel often.', status: 'Pending' },
       ]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
-const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'REJECTED') => {
-  setIsActionLoading(true);
-
-  try {
-    const response = await apiFetch(`/upgrade-request/change-status/${requestId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: newStatus })
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to update to ${newStatus}`);
+  const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'REJECTED') => {
+    setIsActionLoading(true);
+    try {
+      const response = await apiFetch(`/upgrade-request/change-status/${requestId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!response.ok) throw new Error('Action failed');
+      setRequests(prev => prev.filter(req => req.id !== requestId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error');
+    } finally {
+      setIsActionLoading(false);
     }
-
-    // Update local state instead of a full re-fetch to improve Apdex/Performance
-    setRequests(prev => prev.filter(req => req.id !== requestId));
-
-  } catch (err) {
-    // Alert is okay for prototypes, but toast notifications are better for UX
-    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-    console.error("Action error:", err);
-    alert(errorMessage);
-  } finally {
-    setIsActionLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
-      router.push('/dashboard/home');
-    } else {
-      const timer = setTimeout(() => {
-        setIsAdmin(true);
-        fetchData();
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-
+    fetchData();
     const tab = searchParams.get('tab');
-    if (tab && ['overview', 'users', 'requests'].includes(tab)) {
-      setActiveTab(tab);
-    }
-  }, [router, searchParams]);
-
-  if (isLoading || !isAdmin) {
-    return <div className="min-h-screen bg-white flex items-center justify-center font-black text-2xl uppercase tracking-widest">Verifying Admin Privileges...</div>;
-  }
+    if (tab && ['overview', 'users', 'requests'].includes(tab)) setActiveTab(tab);
+  }, [searchParams]);
 
   const stats = [
-    { label: 'Total Users', value: users.length.toString(), icon: <Users className="text-purple-600" />, color: 'bg-purple-100' },
-    { label: 'Pending Requests', value: requests.length.toString(), icon: <ClipboardList className="text-amber-600" />, color: 'bg-amber-100' },
+    { label: 'Total Users', value: (users || []).length.toString(), icon: <Users className="text-purple-600" />, color: 'bg-purple-100' },
+    { label: 'Pending Requests', value: (requests || []).length.toString(), icon: <ClipboardList className="text-amber-600" />, color: 'bg-amber-100' },
     { label: 'System Health', value: '98%', icon: <Activity className="text-emerald-600" />, color: 'bg-emerald-100' },
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto text-black">
       {/* Header */}
       <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-12">
         <div className="flex items-center gap-4 mb-2">
@@ -191,22 +150,6 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
                 </div>
               ))}
             </div>
-            
-            <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_#000]">
-              <h2 className="text-3xl font-black uppercase italic mb-6">Recent Activity Log</h2>
-              <div className="space-y-4">
-                {[
-                  'System health check performed.',
-                  `${requests.length} pending jastiper requests awaiting review.`,
-                  `${users.length} total users registered in the system.`
-                ].map((log, i) => (
-                  <div key={i} className="flex gap-4 p-4 border-2 border-black bg-gray-50 font-bold text-black">
-                    <span className="text-purple-600">[{new Date().toLocaleTimeString()}]</span>
-                    <span>{log}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </motion.div>
         )}
 
@@ -233,7 +176,7 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
                   </tr>
                 </thead>
                 <tbody className="font-bold text-black">
-                  {users.map((user) => (
+                  {(users || []).map((user) => (
                     <tr key={user.id} className="border-b-4 border-black hover:bg-purple-50 transition-colors">
                       <td className="p-4">
                         <div className="flex flex-col">
@@ -265,7 +208,7 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
 
         {activeTab === 'requests' && (
           <motion.div key="requests" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-            {requests.map((request) => (
+            {(requests || []).map((request) => (
               <div key={request.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] relative overflow-hidden text-black">
                 <div className="absolute top-0 right-0 bg-black text-white px-4 py-1 font-black italic">{request.id}</div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -282,23 +225,23 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-xs uppercase font-black text-gray-500 mb-1">Reason</p>
-                    <p className="font-bold italic">&quot;{request.reason || request.experience}&quot;</p>
+                    <p className="font-bold italic text-black">&quot;{request.reason || request.experience}&quot;</p>
                   </div>
                 </div>
                 <div className="mt-8 pt-6 border-t-4 border-black flex flex-wrap justify-between items-center gap-4">
-                  <button className="flex items-center gap-2 bg-main border-4 border-black px-4 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">View Profile <ExternalLink size={16} /></button>
+                  <button className="flex items-center gap-2 bg-main border-4 border-black px-4 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-black">View Profile <ExternalLink size={16} /></button>
                   <div className="flex gap-4">
                     <button 
                       disabled={isActionLoading}
                       onClick={() => handleRequestAction(request.id, 'REJECTED')}
-                      className="flex items-center gap-2 bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
+                      className="flex items-center gap-2 bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 text-black"
                     >
                       <XCircle size={20} /> REJECT
                     </button>
                     <button 
                       disabled={isActionLoading}
                       onClick={() => handleRequestAction(request.id, 'ACCEPTED')}
-                      className="flex items-center gap-2 bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
+                      className="flex items-center gap-2 bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 text-black"
                     >
                       <CheckCircle size={20} /> APPROVE
                     </button>
@@ -306,22 +249,9 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
                 </div>
               </div>
             ))}
-            {requests.length === 0 && (
-              <div className="bg-gray-50 border-4 border-black border-dashed p-12 text-center">
-                <p className="text-2xl font-black text-gray-400 uppercase italic">No Pending Requests</p>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-export default function AdminPortal() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center font-black text-2xl uppercase tracking-widest">Loading...</div>}>
-      <AdminPortalContent />
-    </Suspense>
   );
 }
