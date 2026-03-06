@@ -18,6 +18,7 @@ import {
   XCircle,
   LayoutDashboard
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 interface UserData {
   id: number | string;
@@ -49,15 +50,9 @@ function AdminPortalContent() {
   const [requests, setRequests] = useState<UpgradeRequest[]>([]);
 
   const fetchData = async () => {
-    const token = localStorage.getItem('auth_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-
     try {
       // Fetch Users
-      const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/getUsers`, { headers });
+      const usersRes = await apiFetch('/user/getUsers');
       if (usersRes.ok) {
         setUsers(await usersRes.json());
       } else {
@@ -65,7 +60,7 @@ function AdminPortalContent() {
       }
 
       // Fetch Requests
-      const requestsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upgrade-request/get-requests`, { headers });
+      const requestsRes = await apiFetch('/upgrade-request/get-requests');
       if (requestsRes.ok) {
         setRequests(await requestsRes.json());
       } else {
@@ -92,16 +87,10 @@ function AdminPortalContent() {
 
 const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'REJECTED') => {
   setIsActionLoading(true);
-  const token = localStorage.getItem('auth_token');
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upgrade-request/change-status/${requestId}`, {
+    const response = await apiFetch(`/upgrade-request/change-status/${requestId}`, {
       method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json' // Crucial for sending JSON
-      },
-      // Send the status as a data property
       body: JSON.stringify({ status: newStatus })
     });
 
