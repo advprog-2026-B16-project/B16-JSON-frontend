@@ -35,7 +35,7 @@ export default function OrdersPage() {
 
       <div className="space-y-6">
         <h2 className="text-3xl font-black uppercase underline decoration-purple-400 decoration-8 underline-offset-8">Recent Orders</h2>
-        
+
         {mockOrders.map((order) => (
           <div key={order.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-6 w-full md:w-auto">
