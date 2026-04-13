@@ -26,15 +26,26 @@ export default function LoginPage() {
     setError('');
 
     try {
+      // Hit the internal auth route which handles session/cookies
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Login response:', response.status, data);
+      }
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Login failed');
+        if (data.errorCode === 'AUTH_001') {
+          throw new Error(data.detail || data.message || 'Account locked. Try again in 5 minutes.');
+        }
+
+        const backendMessage = data.detail || data.message || (typeof data === 'object' ? Object.values(data)[0] : null);
+        throw new Error(backendMessage || 'Login failed. Please check your credentials.');
       }
 
       router.push('/dashboard/home');

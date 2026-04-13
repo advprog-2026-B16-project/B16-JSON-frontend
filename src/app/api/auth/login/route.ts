@@ -3,22 +3,46 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    let targetUrl = `${backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl}/login`;
+    targetUrl = targetUrl.replace('://localhost', '://127.0.0.1');
+    
+    // Read the body once
+    const bodyText = await request.text();
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Login] POST ${targetUrl} | Body: ${bodyText}`);
+    }
 
-    const response = await fetch(`${backendUrl}/login`, {
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: bodyText,
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type');
+    let data;
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json().catch(() => ({}));
+    } else {
+      const text = await response.text().catch(() => '');
+      data = { detail: text || 'No response body from backend', message: text };
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Login Response] ${response.status} | Data:`, data);
+    }
 
     if (!response.ok) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    // Set HttpOnly cookies for security (accessible only to the server)
+    // Backend success - check if we have required fields
+    if (!data.token) {
+      console.error('[Login Error] Backend returned success but NO token.');
+      return NextResponse.json({ detail: 'Authentication failed: No token received from server' }, { status: 500 });
+    }
+
     const cookieStore = await cookies();
     
     cookieStore.set('auth_token', data.token, {
@@ -29,17 +53,25 @@ export async function POST(request: Request) {
       path: '/',
     });
 
-    cookieStore.set('user_role', data.role, {
-      httpOnly: true, // Role also protected from JS manipulation
+    cookieStore.set('user_role', data.role || 'USER', {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
-    return NextResponse.json({ success: true, role: data.role });
+    cookieStore.set('user_id', data.id || '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return NextResponse.json({ success: true, role: data.role, id: data.id });
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    console.error('[Login Error]:', error);
+    return NextResponse.json({ detail: `Internal Server Error: ${error instanceof Error ? error.message : 'Unknown'}` }, { status: 500 });
   }
 }
