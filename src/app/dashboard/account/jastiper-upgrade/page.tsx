@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
@@ -13,39 +13,70 @@ import {
   IdCard,
   Phone,
   Send,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 
 export default function JastiperUpgradePage() {
   const router = useRouter();
-  const [isJastiper] = useState(false);
+  const [isJastiper, setIsJastiper] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
     fullName: '',
-    phoneNumber: '',
-    idNumber: '',
-    frequentDestinations: '',
-    experience: '',
-    agreement: false
+    credential: '',
+    confirmPassword: ''
   });
 
+  useEffect(() => {
+    // Check if already a jastiper from cookies or profile
+    const role = document.cookie.split('; ').find(row => row.startsWith('user_role='))?.split('=')[1];
+    if (role === 'JASTIPER' || role === 'ROLE_JASTIPER') {
+      setIsJastiper(true);
+    }
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setFormData(prev => ({ ...prev, [name]: val }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate secure API call
-    setTimeout(() => {
+    setError('');
+
+    // Basic client-side validation
+    if (!formData.fullName || !formData.credential) {
+      setError('Full Name and Credential are required.');
       setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await apiFetch('/upgrade-request/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          credential: formData.credential
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Failed to submit upgrade request.');
+      }
+
       setIsSubmitted(true);
-    }, 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -115,8 +146,14 @@ export default function JastiperUpgradePage() {
               <IdCard size={40} /> Upgrade Request Form
             </h1>
 
+            {error && (
+              <div className="bg-red-400 border-2 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000] text-black">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-black uppercase italic mb-2">Full Name (per ID)</label>
                   <input 
@@ -128,6 +165,35 @@ export default function JastiperUpgradePage() {
                     placeholder="JOHN DOE"
                     className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-yellow-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black uppercase italic mb-2">Credential (URL or Base64 Description)</label>
+                  <textarea 
+                    name="credential"
+                    required
+                    value={formData.credential}
+                    onChange={handleChange}
+                    placeholder="Describe your qualifications or provide a link to your ID/Cert..."
+                    rows={3}
+                    className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-cyan-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black"
+                  />
+                </div>
+
+                <div className="pt-4 border-t-2 border-black border-dashed">
+                  <label className="block text-sm font-black uppercase italic mb-2 flex items-center gap-2">
+                    <Lock size={14} /> Confirm with Current Password
+                  </label>
+                  <input 
+                    type="password" 
+                    name="confirmPassword"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-pink-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black"
+                  />
+                  <PasswordStrengthMeter password={formData.confirmPassword} />
                 </div>
               </div>
 
