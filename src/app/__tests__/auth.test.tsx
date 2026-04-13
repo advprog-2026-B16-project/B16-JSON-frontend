@@ -103,7 +103,7 @@ describe('Authentication Pages', () => {
     it('handles login failure', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ message: 'Invalid credentials' }),
+        json: async () => ({ detail: 'Invalid credentials' }),
       });
 
       render(<LoginPage />);
@@ -132,7 +132,7 @@ describe('Authentication Pages', () => {
       fireEvent.click(screen.getByRole('button', { name: /Enter JSON/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Login failed')).toBeInTheDocument();
+        expect(screen.getByText('Login failed. Please check your credentials.')).toBeInTheDocument();
       });
     });
 
