@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import DashboardClient from '../DashboardClient';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -18,8 +18,8 @@ describe('DashboardClient', () => {
       push: mockPush,
       refresh: mockRefresh,
     });
-    // @ts-ignore
-    (require('next/navigation').usePathname as jest.Mock).mockReturnValue('/dashboard/home');
+    // @ts-expect-error - usePathname is mocked
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/home');
     global.fetch = jest.fn();
   });
 

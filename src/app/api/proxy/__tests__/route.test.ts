@@ -1,6 +1,4 @@
 import { GET } from '../[...path]/route';
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 const mockCookieStore = {
   get: jest.fn(),
@@ -43,7 +41,7 @@ describe('Proxy API Route', () => {
       'https://api.test.com/user/profile',
       expect.any(Object)
     );
-    // @ts-ignore
+    // @ts-expect-error - response.data property is from mocked NextResponse
     expect(response.data).toEqual({ name: 'Test User' });
   });
 });

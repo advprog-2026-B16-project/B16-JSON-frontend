@@ -1,7 +1,5 @@
 import { POST as loginPOST } from '../login/route';
 import { POST as logoutPOST } from '../logout/route';
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 const mockCookieStore = {
   set: jest.fn(),
@@ -38,7 +36,7 @@ describe('Auth API Routes', () => {
       const response = await loginPOST(mockRequest);
 
       expect(mockCookieStore.set).toHaveBeenCalledWith('auth_token', 'mock-token', expect.any(Object));
-      // @ts-ignore
+      // @ts-expect-error - response.data property is from mocked NextResponse
       expect(response.data).toEqual({ success: true, role: 'USER' });
     });
   });

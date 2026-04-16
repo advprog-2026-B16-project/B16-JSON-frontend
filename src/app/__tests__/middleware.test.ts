@@ -21,7 +21,7 @@ describe('Middleware', () => {
       },
     } as unknown as NextRequest;
 
-    const res = middleware(req);
+    middleware(req);
     expect(NextResponse.redirect).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/login' }));
   });
 
@@ -37,7 +37,7 @@ describe('Middleware', () => {
       },
     } as unknown as NextRequest;
 
-    const res = middleware(req);
+    middleware(req);
     expect(NextResponse.redirect).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/dashboard/home' }));
   });
 
@@ -50,7 +50,7 @@ describe('Middleware', () => {
       },
     } as unknown as NextRequest;
 
-    const res = middleware(req);
+    middleware(req);
     expect(NextResponse.redirect).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/dashboard/home' }));
   });
 
@@ -63,7 +63,7 @@ describe('Middleware', () => {
       },
     } as unknown as NextRequest;
 
-    const res = middleware(req);
+    middleware(req);
     expect(NextResponse.next).toHaveBeenCalled();
   });
 });
