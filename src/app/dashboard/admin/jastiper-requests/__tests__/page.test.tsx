@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
 import JastiperRequestsPage from '../page';
 import { apiFetch } from '../../../../../lib/api';
+import { ReactNode } from 'react';
 
 jest.mock('../../../../../lib/api', () => ({
   apiFetch: jest.fn(),
@@ -8,13 +9,13 @@ jest.mock('../../../../../lib/api', () => ({
 
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, layout, ...props }: any) => <div {...props}>{children}</div>,
+    div: ({ children, ...props }: { children: ReactNode; layout?: boolean; [key: string]: unknown }) => <div {...props}>{children}</div>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('lucide-react', () => {
-  const IconMock = (props: any) => <svg data-testid="icon" {...props} />;
+  const IconMock = (props: Record<string, unknown>) => <svg data-testid="icon" {...props} />;
   return {
     ClipboardList: IconMock, CheckCircle: IconMock, XCircle: IconMock, 
     User: IconMock, Calendar: IconMock, ExternalLink: IconMock, Loader2: IconMock,
@@ -32,7 +33,7 @@ describe('JastiperRequestsPage 100% Final Precision', () => {
     jest.useRealTimers();
   });
 
-  const mockRes = (data: any, ok = true, status = 200) => ({
+  const mockRes = (data: unknown, ok = true, status = 200) => ({
     ok,
     status,
     json: async () => data,

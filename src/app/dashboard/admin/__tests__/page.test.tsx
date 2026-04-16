@@ -2,6 +2,7 @@ import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
 import AdminPortal from '../page';
 import { apiFetch } from '../../../../lib/api';
 import * as navigation from 'next/navigation';
+import { ReactNode } from 'react';
 
 jest.mock('../../../../lib/api', () => ({
   apiFetch: jest.fn(),
@@ -15,13 +16,13 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, layout, ...props }: any) => <div {...props}>{children}</div>,
+    div: ({ children, ...props }: { children: ReactNode; layout?: boolean; [key: string]: unknown }) => <div {...props}>{children}</div>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('lucide-react', () => {
-  const IconMock = (props: any) => <svg data-testid="icon" {...props} />;
+  const IconMock = (props: Record<string, unknown>) => <svg data-testid="icon" {...props} />;
   return {
     ShieldCheck: IconMock, Users: IconMock, ClipboardList: IconMock,
     Activity: IconMock, Mail: IconMock, User: IconMock,
@@ -46,7 +47,7 @@ describe('AdminPortal 100% Final Strictly', () => {
     jest.useRealTimers();
   });
 
-  const mockRes = (data: any, ok = true, status = 200) => ({
+  const mockRes = (data: unknown, ok = true, status = 200) => ({
     ok,
     status,
     json: async () => data,

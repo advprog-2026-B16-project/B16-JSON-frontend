@@ -1,6 +1,7 @@
-import { render, screen, act, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import AllUsersPage from '../page';
 import { apiFetch } from '../../../../../lib/api';
+import { ReactNode } from 'react';
 
 jest.mock('../../../../../lib/api', () => ({
   apiFetch: jest.fn(),
@@ -8,13 +9,13 @@ jest.mock('../../../../../lib/api', () => ({
 
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    div: ({ children, ...props }: { children: ReactNode; [key: string]: unknown }) => <div {...props}>{children}</div>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('lucide-react', () => {
-  const IconMock = (props: any) => <svg data-testid="icon" {...props} />;
+  const IconMock = (props: Record<string, unknown>) => <svg data-testid="icon" {...props} />;
   return {
     Users: IconMock, Search: IconMock, Mail: IconMock, 
     Loader2: IconMock, ShieldCheck: IconMock,
@@ -30,7 +31,7 @@ describe('AllUsersPage 100% Final Precision', () => {
     cleanup();
   });
 
-  const mockRes = (data: any, ok = true) => ({
+  const mockRes = (data: unknown, ok = true) => ({
     ok,
     status: ok ? 200 : 500,
     json: async () => data,
@@ -49,9 +50,9 @@ describe('AllUsersPage 100% Final Precision', () => {
     expect(await screen.findByText('un2-unq')).toBeInTheDocument();
     cleanup();
 
-    // getUsers fail -> all ok -> fallback (Line 46 else branch)
-    // To hit Line 46, response.ok must be false.
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, false)); 
+    // getUsers fail -> all fail -> fallback (Line 46 else branch)
+    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, false)); // first fail
+    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, false)); // second fail
     render(<AllUsersPage />);
     expect(await screen.findByText('admin1')).toBeInTheDocument();
     cleanup();
