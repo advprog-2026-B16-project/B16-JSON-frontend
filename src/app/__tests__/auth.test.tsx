@@ -234,6 +234,7 @@ describe('Authentication Pages', () => {
               username: 'testuser',
               email: 'test@example.com',
               password: validPassword,
+              confirmPassword: validPassword,
             }),
           })
         );
@@ -276,7 +277,7 @@ describe('Authentication Pages', () => {
       fireEvent.click(screen.getByRole('button', { name: /Join JSON/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Registration failed')).toBeInTheDocument();
+        expect(screen.getByText(/Registration failed/i)).toBeInTheDocument();
       });
     });
   });
