@@ -25,21 +25,28 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+      // Hit the internal auth route which handles session/cookies
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Login failed');
+      const data = await response.json();
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Login response:', response.status, data);
       }
 
-      const data = await response.json();
-//       console.log(data.user.username)
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('user_role', data.user.role);
+      if (!response.ok) {
+        if (data.errorCode === 'AUTH_001') {
+          throw new Error(data.detail || data.message || 'Account locked. Try again in 5 minutes.');
+        }
+
+        const backendMessage = data.detail || data.message || (typeof data === 'object' ? Object.values(data)[0] : null);
+        throw new Error(backendMessage || 'Login failed. Please check your credentials.');
+      }
+
       router.push('/dashboard/home');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred. Please try again.';
@@ -110,6 +117,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 rounded text-black"
                 >
                   {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}

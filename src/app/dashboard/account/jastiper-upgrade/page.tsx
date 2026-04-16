@@ -6,63 +6,78 @@ import { motion } from 'framer-motion';
 import { 
   ShieldCheck, 
   ArrowLeft,
-  Star,
   CheckCircle2,
-  Globe,
-  Plane,
   IdCard,
-  Phone,
   Send,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 
 export default function JastiperUpgradePage() {
   const router = useRouter();
   const [isJastiper, setIsJastiper] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
     fullName: '',
-    phoneNumber: '',
-    idNumber: '',
-    frequentDestinations: '',
-    experience: '',
-    agreement: false
+    credential: '',
+    confirmPassword: ''
   });
 
   useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role === 'JASTIPER') {
-      const timer = setTimeout(() => setIsJastiper(true), 0);
-      return () => clearTimeout(timer);
+    // Check if already a jastiper from cookies or profile
+    const role = document.cookie.split('; ').find(row => row.startsWith('user_role='))?.split('=')[1];
+    if (role === 'JASTIPER' || role === 'ROLE_JASTIPER') {
+      setIsJastiper(true);
     }
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setFormData(prev => ({ ...prev, [name]: val }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API delay for processing the upgrade application
-    setTimeout(() => {
-      localStorage.setItem('user_role', 'JASTIPER');
-      setIsJastiper(true);
+    setError('');
+
+    // Basic client-side validation
+    if (!formData.fullName || !formData.credential) {
+      setError('Full Name and Credential are required.');
       setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await apiFetch('/upgrade-request/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          credential: formData.credential
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Failed to submit upgrade request.');
+      }
+
       setIsSubmitted(true);
-      // Trigger event for layout to update instantly
-      window.dispatchEvent(new Event('roleUpdated'));
-    }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-20 text-center">
+      <div className="max-w-3xl mx-auto px-6 py-20 text-center text-black">
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -73,11 +88,11 @@ export default function JastiperUpgradePage() {
           </div>
           <h1 className="text-5xl font-black uppercase mb-4">Application Sent!</h1>
           <p className="text-xl font-bold mb-8">
-            Your request to become a Jastiper has been approved. You now have access to the Catalogue and Orders menu.
+            Your request to become a Jastiper has been sent for review.
           </p>
           <button 
             onClick={() => router.push('/dashboard/home')}
-            className="neo-button bg-white text-2xl px-12 py-4"
+            className="neo-button bg-white text-2xl px-12 py-4 text-black"
           >
             Go to Dashboard
           </button>
@@ -87,10 +102,10 @@ export default function JastiperUpgradePage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className="max-w-5xl mx-auto px-6 py-12 text-black">
       <button
         onClick={() => router.push('/dashboard/account')}
-        className="flex items-center gap-2 font-bold hover:underline decoration-4 mb-8"
+        className="flex items-center gap-2 font-bold hover:underline decoration-4 mb-8 text-black"
       >
         <ArrowLeft size={20} /> Back to Account
       </button>
@@ -118,15 +133,6 @@ export default function JastiperUpgradePage() {
               Complete the form to request your upgrade. This will allow you to create your own catalogue and fulfill orders.
             </p>
           </div>
-
-          <div className="bg-cyan-100 border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000]">
-            <h3 className="text-xl font-black uppercase mb-4 underline decoration-4 underline-offset-4">Why upgrade?</h3>
-            <ul className="space-y-4 font-bold text-sm">
-              <li className="flex gap-2"><Star size={18} className="shrink-0" fill="black" /> Get paid for your travels</li>
-              <li className="flex gap-2"><Globe size={18} className="shrink-0" /> Global visibility for your offers</li>
-              <li className="flex gap-2"><Plane size={18} className="shrink-0" /> Turn your trips into business</li>
-            </ul>
-          </div>
         </div>
 
         {/* Upgrade Form */}
@@ -136,8 +142,14 @@ export default function JastiperUpgradePage() {
               <IdCard size={40} /> Upgrade Request Form
             </h1>
 
+            {error && (
+              <div className="bg-red-400 border-2 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000] text-black">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-black uppercase italic mb-2">Full Name (per ID)</label>
                   <input 
@@ -147,83 +159,44 @@ export default function JastiperUpgradePage() {
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder="JOHN DOE"
-                    className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-yellow-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
+                    className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-yellow-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-black uppercase italic mb-2">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      type="tel" 
-                      name="phoneNumber"
-                      required
-                      value={formData.phoneNumber}
-                      onChange={handleChange}
-                      placeholder="+62 812..."
-                      className="w-full bg-white border-4 border-black p-4 pl-12 font-bold focus:outline-none focus:bg-cyan-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
-                    />
-                  </div>
+                  <label className="block text-sm font-black uppercase italic mb-2">Credential (URL or Base64 Description)</label>
+                  <textarea 
+                    name="credential"
+                    required
+                    value={formData.credential}
+                    onChange={handleChange}
+                    placeholder="Describe your qualifications or provide a link to your ID/Cert..."
+                    rows={3}
+                    className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-cyan-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black"
+                  />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-black uppercase italic mb-2">National ID / Passport Number</label>
-                <input 
-                  type="text" 
-                  name="idNumber"
-                  required
-                  value={formData.idNumber}
-                  onChange={handleChange}
-                  placeholder="32710100..."
-                  className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-pink-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-black uppercase italic mb-2">Frequent Destinations</label>
-                <textarea 
-                  name="frequentDestinations"
-                  required
-                  value={formData.frequentDestinations}
-                  onChange={handleChange}
-                  placeholder="Tokyo, Singapore, Bangkok, etc."
-                  rows={2}
-                  className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-purple-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-black uppercase italic mb-2">Brief Experience / Bio</label>
-                <textarea 
-                  name="experience"
-                  required
-                  value={formData.experience}
-                  onChange={handleChange}
-                  placeholder="I travel to Japan twice a year and often help friends buy snacks..."
-                  rows={3}
-                  className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-green-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
-                />
-              </div>
-
-              <div className="flex items-start gap-3 p-4 bg-gray-50 border-2 border-black">
-                <input 
-                  type="checkbox" 
-                  name="agreement"
-                  required
-                  checked={formData.agreement}
-                  onChange={handleChange}
-                  className="mt-1 w-5 h-5 border-2 border-black rounded-none appearance-none checked:bg-main cursor-pointer"
-                />
-                <label className="text-sm font-bold">
-                  I certify that the information provided is accurate and I agree to the <span className="underline cursor-pointer">Jastiper Terms of Service</span>.
-                </label>
+                <div className="pt-4 border-t-2 border-black border-dashed">
+                  <label className="block text-sm font-black uppercase italic mb-2 flex items-center gap-2">
+                    <Lock size={14} /> Confirm with Current Password
+                  </label>
+                  <input 
+                    type="password" 
+                    name="confirmPassword"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-pink-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black"
+                  />
+                  <PasswordStrengthMeter password={formData.confirmPassword} />
+                </div>
               </div>
 
               <button 
                 type="submit" 
                 disabled={isSubmitting || isJastiper}
-                className={`w-full neo-button flex items-center justify-center gap-3 bg-main text-2xl py-6 ${isSubmitting || isJastiper ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`w-full neo-button flex items-center justify-center gap-3 bg-main text-2xl py-6 ${isSubmitting || isJastiper ? 'opacity-50 cursor-not-allowed' : ''} text-black`}
               >
                 {isSubmitting ? 'Processing...' : (
                   <>
@@ -231,12 +204,6 @@ export default function JastiperUpgradePage() {
                   </>
                 )}
               </button>
-
-              {isJastiper && !isSubmitted && (
-                <p className="text-center font-black uppercase text-green-600 text-sm">
-                  You already have the Jastiper role active.
-                </p>
-              )}
             </form>
           </div>
         </div>
