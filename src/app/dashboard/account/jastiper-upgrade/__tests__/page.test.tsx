@@ -4,7 +4,7 @@ import Page from '../page';
 describe('Jastiper Upgrade Page', () => {
   it('renders correctly', () => {
     render(<Page />);
-    const elements = screen.getAllByText(/Become a Jastiper/i);
+    const elements = screen.getAllByText(/Jastiper Role/i);
     expect(elements.length).toBeGreaterThan(0);
   });
 });

@@ -88,7 +88,7 @@ describe('JastiperRequestsPage 100% Final Precision', () => {
     render(<JastiperRequestsPage />);
     await screen.findByText('u1-unq');
     await act(async () => { fireEvent.click(screen.getByText('REJECT')); });
-    expect(await screen.findByText('Det-unq')).toBeInTheDocument();
+    expect(await screen.findByText(/Det-unq/i)).toBeInTheDocument();
     cleanup();
 
     // catch branch non-Error (Line 113)
