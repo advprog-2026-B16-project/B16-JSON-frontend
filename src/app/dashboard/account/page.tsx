@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User, 
@@ -17,18 +16,11 @@ import {
 
 export default function AccountPage() {
   const router = useRouter();
-  const [isJastiper, setIsJastiper] = useState(false);
-
-  useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role === 'JASTIPER') {
-      const timer = setTimeout(() => setIsJastiper(true), 0);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // Assume basic user state or fetch from secure API
+  const isJastiper = false; 
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-6 py-12 text-black">
       <div className="flex flex-col lg:flex-row gap-12 items-start">
         {/* Profile Card */}
         <div className="w-full lg:w-1/3">
@@ -54,7 +46,7 @@ export default function AccountPage() {
 
             <button 
               onClick={() => router.push('/dashboard/settings')}
-              className="w-full mt-8 flex items-center justify-center gap-2 border-4 border-black py-3 font-black uppercase hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              className="w-full mt-8 flex items-center justify-center gap-2 border-4 border-black py-3 font-black uppercase hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none text-black hover:text-white"
             >
               <Settings size={20} /> Edit Profile
             </button>
@@ -89,7 +81,7 @@ export default function AccountPage() {
                   router.push('/dashboard/account/jastiper-upgrade');
                 }
               }}
-              className={`whitespace-nowrap neo-button flex items-center gap-2 text-xl px-8 py-5 ${isJastiper ? 'bg-yellow-400' : 'bg-main'}`}
+              className={`whitespace-nowrap neo-button flex items-center gap-2 text-xl px-8 py-5 ${isJastiper ? 'bg-yellow-400' : 'bg-main'} text-black`}
             >
               {isJastiper ? "View Pro Status" : (
                 <>
@@ -133,7 +125,7 @@ function ProfileItem({ icon, label, value }: { icon: React.ReactNode, label: str
 
 function DashboardActionCard({ icon, title, description, color }: { icon: React.ReactNode, title: string, description: string, color: string }) {
   return (
-    <div className={`border-4 border-black p-8 ${color} shadow-[8px_8px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_#000] transition-all cursor-pointer`}>
+    <div className={`border-4 border-black p-8 ${color} shadow-[8px_8px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_#000] transition-all cursor-pointer text-black`}>
       <div className="bg-white border-2 border-black w-14 h-14 flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_#000]">
         {icon}
       </div>

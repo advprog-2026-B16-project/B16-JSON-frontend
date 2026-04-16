@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { UserPlus, LogIn, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,8 +19,11 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const passwordRegex = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\S+$).{8,}$/;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,28 +31,39 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError('');
 
+    // CLIENT-SIDE VALIDATION
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
 
+    if (!passwordRegex.test(formData.password)) {
+      setError('Password must be at least 8 characters long, contain at least one digit, one lowercase letter, one uppercase letter, one special character (@#$%^&+=!), and have no whitespace.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { confirmPassword, ...submitData } = formData;
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
+      // Postman confirmed: username, email, password, confirmPassword are required
+      const response = await apiFetch('/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        data = { detail: 'Could not parse response from server' };
+      }
 
       if (!response.ok) {
-        if (typeof data === 'object') {
-          const firstError = Object.values(data)[0] as string;
-          throw new Error(firstError || 'Registration failed');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Registration Error Payload:', data);
         }
-        throw new Error(data.message || 'Registration failed');
+        const backendMessage = data.detail || data.message || data.error || (typeof data === 'object' ? Object.values(data)[0] : null);
+        throw new Error(backendMessage || `Registration failed with status ${response.status}`);
       }
 
       router.push('/login?registered=true');
@@ -84,7 +100,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="bg-red-400 border-2 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000] text-black">
+            <div className="bg-red-400 border-2 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000] text-black" id="error-message">
               {error}
             </div>
           )}
@@ -134,11 +150,13 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-black"
                 >
                   {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                 </button>
               </div>
+              <PasswordStrengthMeter password={formData.password} />
             </div>
 
             <div>
