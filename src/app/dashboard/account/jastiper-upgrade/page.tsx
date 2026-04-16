@@ -6,12 +6,8 @@ import { motion } from 'framer-motion';
 import { 
   ShieldCheck, 
   ArrowLeft,
-  Star,
   CheckCircle2,
-  Globe,
-  Plane,
   IdCard,
-  Phone,
   Send,
   AlertCircle,
   Lock

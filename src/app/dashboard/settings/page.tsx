@@ -13,9 +13,7 @@ import {
   CheckCircle,
   AlertCircle,
   User,
-  Mail,
-  MapPin,
-  FileText
+  MapPin
 } from 'lucide-react';
 import { updateProfile, getProfile } from './actions';
 import { ProfileResponseDTO } from '@/types/api';

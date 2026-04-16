@@ -2,9 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, CheckCircle, XCircle, User, Calendar, ExternalLink, Loader2 } from 'lucide-react';
+import { ClipboardList, User, Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { UpgradeRequestResponse } from '@/types/api';
+
+interface RawUpgradeRequest {
+  id?: string;
+  upgr_req_id?: string;
+  requestId?: string;
+  createdAt?: string;
+  created_at?: string;
+  requesterUserId?: string;
+  requesterUsername?: string;
+  requester_user?: string | { id: string; username: string };
+  fullName?: string;
+  full_name?: string;
+  credential?: string;
+  status?: string;
+}
 
 export default function JastiperRequestsPage() {
   const [requests, setRequests] = useState<UpgradeRequestResponse[]>([]);
@@ -39,7 +54,7 @@ export default function JastiperRequestsPage() {
 
       if (response.ok && rawData) {
         console.log('[RequestsPage] Raw data:', rawData);
-        let extracted: any[] = [];
+        let extracted: RawUpgradeRequest[] = [];
         if (Array.isArray(rawData)) {
           extracted = rawData;
         } else if (rawData && typeof rawData === 'object') {
@@ -51,12 +66,12 @@ export default function JastiperRequestsPage() {
 
         // NORMALIZE AND FILTER
         const normalized = extracted
-          .filter((r: any) => r.id || r.upgr_req_id || r.requestId || r.requesterUsername)
-          .map((r: any) => ({
+          .filter((r: RawUpgradeRequest) => r.id || r.upgr_req_id || r.requestId || r.requesterUsername)
+          .map((r: RawUpgradeRequest) => ({
             id: r.id || r.upgr_req_id || r.requestId || Math.random().toString(),
             createdAt: r.createdAt || r.created_at || new Date().toISOString(),
             requesterUserId: r.requesterUserId || (typeof r.requester_user === 'object' ? r.requester_user.id : r.requesterUserId) || 'unknown',
-            requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : r.requester_user) || 'unknown',
+            requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : (r.requester_user as string)) || 'unknown',
             fullName: r.fullName || r.full_name || 'No Name',
             credential: r.credential || 'No Credential',
             status: r.status?.toUpperCase() || 'PENDING'
@@ -72,7 +87,7 @@ export default function JastiperRequestsPage() {
           {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
         ]);
       }
-    } catch (err) {
+    } catch {
       setRequests([
         {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
         {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}

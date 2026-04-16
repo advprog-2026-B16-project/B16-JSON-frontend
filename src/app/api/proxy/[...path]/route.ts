@@ -74,7 +74,7 @@ async function proxyRequest(request: Request, pathSegments: string[]) {
     let data;
     try {
       data = JSON.parse(text);
-    } catch (e) {
+    } catch {
       data = { detail: text || `Backend returned status ${response.status}`, status: response.status, url: targetUrl };
     }
 

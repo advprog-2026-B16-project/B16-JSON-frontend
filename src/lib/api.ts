@@ -1,7 +1,4 @@
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
-  // Use environment variable with a hardcoded fallback for local development reliability
-  const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-  
   // Use the Next.js API proxy to include the HttpOnly auth_token automatically
   const proxyEndpoint = `/api/proxy${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 

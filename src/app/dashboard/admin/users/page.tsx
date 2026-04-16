@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Search, Mail, Loader2, ShieldCheck } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface UserData {
@@ -34,7 +34,7 @@ export default function AllUsersPage() {
         
         // STRICT FILTERING: Only items that look like users
         if (Array.isArray(extracted)) {
-          extracted = extracted.filter((u: any) => 
+          extracted = extracted.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) => 
             (u.id || u.email) && !u.upgr_req_id && !u.requester_user
           );
         }
@@ -52,7 +52,7 @@ export default function AllUsersPage() {
           {"id":"c919557b-cb3b-4e7f-b70c-6c35a00ab2fd","email":"erik.wilbert@ui.ac.id","role":"TITIPER","status":"ACTIVE","username":"erik.wilbert"}
         ]);
       }
-    } catch (err) {
+    } catch {
       setUsers([
         {"id":"7c913fcf-831d-41ca-8ff9-4864440cd398","email":"admin@gmail.com","role":"ADMIN","status":"ACTIVE","username":"admin1"},
         {"id":"0e06c26e-bd9d-4fd8-a03c-133121a18e34","email":"test@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser"},

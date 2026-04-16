@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { LogIn, UserPlus, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();

@@ -8,12 +8,6 @@ import {
   Users, 
   ClipboardList, 
   Activity, 
-  Mail, 
-  User, 
-  Calendar, 
-  ExternalLink,
-  CheckCircle,
-  XCircle,
   LayoutDashboard,
   Loader2
 } from 'lucide-react';
@@ -27,6 +21,22 @@ interface UserData {
   email: string;
   role: string;
   status: string;
+}
+
+interface RawUpgradeRequest {
+  id?: string;
+  upgr_req_id?: string;
+  requestId?: string;
+  createdAt?: string;
+  created_at?: string;
+  requesterUserId?: string;
+  requesterUsername?: string;
+  requester_user?: string | { id: string; username: string };
+  fullName?: string;
+  full_name?: string;
+  credential?: string;
+  status?: string;
+  upgradeRequests?: RawUpgradeRequest[];
 }
 
 export default function AdminPortal() {
@@ -51,7 +61,7 @@ export default function AdminPortal() {
         
         // STRICT FILTERING: Only items that look like users (have id/email and NOT upgr_req_id)
         if (Array.isArray(extractedUsers)) {
-          extractedUsers = extractedUsers.filter((u: any) => 
+          extractedUsers = extractedUsers.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) => 
             (u.id || u.email) && !u.upgr_req_id && !u.requester_user
           );
         }
@@ -92,7 +102,7 @@ export default function AdminPortal() {
 
       if (requestsRes.ok && rawData) {
         console.log('[Admin] Requests raw data:', rawData);
-        let extracted: any[] = [];
+        let extracted: RawUpgradeRequest[] = [];
         if (Array.isArray(rawData)) {
           extracted = rawData;
         } else if (rawData && typeof rawData === 'object') {
@@ -104,12 +114,12 @@ export default function AdminPortal() {
 
         // NORMALIZE AND FILTER
         const normalized = extracted
-          .filter((r: any) => r.id || r.upgr_req_id || r.requestId || r.requesterUsername)
-          .map((r: any) => ({
+          .filter((r: RawUpgradeRequest) => r.id || r.upgr_req_id || r.requestId || r.requesterUsername)
+          .map((r: RawUpgradeRequest) => ({
             id: r.id || r.upgr_req_id || r.requestId || Math.random().toString(),
             createdAt: r.createdAt || r.created_at || new Date().toISOString(),
             requesterUserId: r.requesterUserId || (typeof r.requester_user === 'object' ? r.requester_user.id : r.requesterUserId) || 'unknown',
-            requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : r.requester_user) || 'unknown',
+            requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : (r.requester_user as string)) || 'unknown',
             fullName: r.fullName || r.full_name || 'No Name',
             credential: r.credential || 'No Credential',
             status: r.status?.toUpperCase() || 'PENDING'
@@ -125,7 +135,7 @@ export default function AdminPortal() {
         ]);
 
       }
-    } catch (err) {
+    } catch {
       setUsers([
         {"id":"7c913fcf-831d-41ca-8ff9-4864440cd398","email":"admin@gmail.com","role":"ADMIN","status":"ACTIVE","username":"admin1"},
         {"id":"0e06c26e-bd9d-4fd8-a03c-133121a18e34","email":"test@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser"},
@@ -340,7 +350,7 @@ export default function AdminPortal() {
   );
 }
 
-const StatCard = ({ label, value, icon, color }: any) => {
+const StatCard = ({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) => {
   return (
     <div className={`${color} border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000]`}>
       <div className="flex justify-between items-start mb-4">

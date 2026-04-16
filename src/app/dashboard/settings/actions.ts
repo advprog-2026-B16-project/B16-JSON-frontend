@@ -56,7 +56,7 @@ export async function getProfile() {
     }
 
     return { success: true, data: data as ProfileResponseDTO };
-  } catch (error) {
+  } catch {
     return { error: 'Internal Server Error' };
   }
 }

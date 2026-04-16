@@ -54,7 +54,7 @@ export default function RegisterPage() {
       let data;
       try {
         data = await response.json();
-      } catch (e) {
+      } catch {
         data = { detail: 'Could not parse response from server' };
       }
 
