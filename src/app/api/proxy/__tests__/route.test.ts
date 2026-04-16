@@ -32,7 +32,9 @@ describe('Proxy API Route', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       status: 200,
+      ok: true,
       json: async () => ({ name: 'Test User' }),
+      text: async () => JSON.stringify({ name: 'Test User' }),
     });
 
     const response = await GET(mockRequest, { params: { path: ['user', 'profile'] } });

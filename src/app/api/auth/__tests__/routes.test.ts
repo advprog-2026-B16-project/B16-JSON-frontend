@@ -26,10 +26,14 @@ describe('Auth API Routes', () => {
     it('successfully logs in and sets cookies', async () => {
       const mockRequest = {
         json: jest.fn().mockResolvedValue({ email: 'test@test.com', password: 'password' }),
+        text: jest.fn().mockResolvedValue(JSON.stringify({ email: 'test@test.com', password: 'password' })),
       } as unknown as Request;
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null,
+        },
         json: async () => ({ token: 'mock-token', role: 'USER' }),
       });
 
