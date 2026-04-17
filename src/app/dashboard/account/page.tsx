@@ -92,12 +92,14 @@ export default function AccountPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <DashboardActionCard 
-              icon={<CreditCard size={32} />} 
-              title="Wallet & Payments" 
-              description="Manage your balance, bank accounts, and payment methods."
-              color="bg-cyan-100"
-            />
+            <div onClick={() => router.push('/dashboard/wallet')} className="cursor-pointer h-full">
+              <DashboardActionCard 
+                icon={<CreditCard size={32} />} 
+                title="Wallet & Payments" 
+                description="Manage your balance, bank accounts, and payment methods."
+                color="bg-cyan-100"
+              />
+            </div>
             <DashboardActionCard 
               icon={<History size={32} />} 
               title="Activity History" 
@@ -125,7 +127,7 @@ function ProfileItem({ icon, label, value }: { icon: React.ReactNode, label: str
 
 function DashboardActionCard({ icon, title, description, color }: { icon: React.ReactNode, title: string, description: string, color: string }) {
   return (
-    <div className={`border-4 border-black p-8 ${color} shadow-[8px_8px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_#000] transition-all cursor-pointer text-black`}>
+    <div className={`h-full border-4 border-black p-8 ${color} shadow-[8px_8px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_#000] transition-all`}>
       <div className="bg-white border-2 border-black w-14 h-14 flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_#000]">
         {icon}
       </div>
