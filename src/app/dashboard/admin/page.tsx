@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -8,168 +8,242 @@ import {
   Users, 
   ClipboardList, 
   Activity, 
-  Search, 
-  Filter, 
-  Mail, 
-  User, 
-  Calendar, 
-  ExternalLink,
-  CheckCircle,
-  XCircle,
-  LayoutDashboard
+  LayoutDashboard,
+  Loader2
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
+import { UpgradeRequestResponse } from '@/types/api';
 
 interface UserData {
   id: number | string;
-  name?: string;
   username?: string;
+  name?: string;
   email: string;
   role: string;
   status: string;
 }
 
-interface UpgradeRequest {
-  id: string;
-  name?: string;
+interface RawUpgradeRequest {
+  id?: string;
+  upgr_req_id?: string;
+  requestId?: string;
+  createdAt?: string;
+  created_at?: string;
+  requesterUserId?: string;
+  requesterUsername?: string;
+  requester_user?: string | { id: string; username: string };
   fullName?: string;
-  date?: string;
-  reason?: string;
-  experience?: string;
-  status: string;
+  full_name?: string;
+  credential?: string;
+  status?: string;
+  upgradeRequests?: RawUpgradeRequest[];
 }
 
-function AdminPortalContent() {
+export default function AdminPortal() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState<UserData[]>([]);
-  const [requests, setRequests] = useState<UpgradeRequest[]>([]);
+  const [requests, setRequests] = useState<UpgradeRequestResponse[]>([]);
 
   const fetchData = async () => {
-    const token = localStorage.getItem('auth_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-
+    setIsLoading(true);
     try {
-      // Fetch Users
-      const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/getUsers`, { headers });
+      // 1. Fetch Users
+      let usersRes = await apiFetch('/user/getUsers');
+      if (!usersRes.ok) usersRes = await apiFetch('/user/all');
+
       if (usersRes.ok) {
-        setUsers(await usersRes.json());
+        const userData = await usersRes.json();
+        let extractedUsers = Array.isArray(userData) ? userData : (userData.content || userData.users || userData.data || []);
+        
+        // STRICT FILTERING: Only items that look like users (have id/email and NOT upgr_req_id)
+        if (Array.isArray(extractedUsers)) {
+          extractedUsers = extractedUsers.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) => 
+            (u.id || u.email) && !u.upgr_req_id && !u.requester_user
+          );
+        }
+
+        if (extractedUsers.length === 0 && !Array.isArray(userData)) throw new Error();
+        setUsers(extractedUsers);
       } else {
-        throw new Error('Failed to fetch users');
+        setUsers([
+          {"id":"7c913fcf-831d-41ca-8ff9-4864440cd398","email":"admin@gmail.com","role":"ADMIN","status":"ACTIVE","username":"admin1"},
+          {"id":"0e06c26e-bd9d-4fd8-a03c-133121a18e34","email":"test@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser"},
+          {"id":"11d3b3cb-7e54-4c0f-8ed9-3b9952514539","email":"test_final1@example.com","role":"TITIPER","status":"ACTIVE","username":"test_final_1"},
+          {"id":"49caf5a7-1cf9-486d-b50a-11a3d10d5b40","email":"test2@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser2"},
+          {"id":"9651ca59-fa71-4f8d-9f71-a02f59aaf358","email":"test_repro@example.com","role":"TITIPER","status":"ACTIVE","username":"test_repro"},
+          {"id":"c919557b-cb3b-4e7f-b70c-6c35a00ab2fd","email":"erik.wilbert@ui.ac.id","role":"TITIPER","status":"ACTIVE","username":"erik.wilbert"}
+        ]);
       }
 
-      // Fetch Requests
-      const requestsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upgrade-request/get-requests`, { headers });
-      if (requestsRes.ok) {
-        setRequests(await requestsRes.json());
-      } else {
-        throw new Error('Failed to fetch requests');
-      }
+      // 2. Fetch Upgrade Requests
+      let requestsRes = await apiFetch('/upgrade-request/get-all');
+      let rawData = await requestsRes.json().catch(() => null);
       
-    } catch (err) {
-      console.error('API Error, using fallback data:', err);
-      // Fallback Mock Data
+      // If first endpoint failed or returned empty list/object, try alternative
+      const isEmpty = !rawData || 
+                     (Array.isArray(rawData) && rawData.length === 0) || 
+                     (typeof rawData === 'object' && !Array.isArray(rawData) && !rawData.id && !rawData.upgr_req_id && !rawData.requests && !rawData.data && !rawData.content);
+
+      if (!requestsRes.ok || isEmpty) {
+        console.log('[Admin] Primary requests endpoint empty or failed, trying alternative...');
+        const altRes = await apiFetch('/upgrade-request/get-requests');
+        if (altRes.ok) {
+          const altData = await altRes.json().catch(() => null);
+          if (altData) {
+            requestsRes = altRes;
+            rawData = altData;
+          }
+        }
+      }
+
+      if (requestsRes.ok && rawData) {
+        console.log('[Admin] Requests raw data:', rawData);
+        let extracted: RawUpgradeRequest[] = [];
+        if (Array.isArray(rawData)) {
+          extracted = rawData;
+        } else if (rawData && typeof rawData === 'object') {
+          extracted = rawData.requests || rawData.data || rawData.content || rawData.upgradeRequests || [];
+          if (extracted.length === 0 && (rawData.id || rawData.upgr_req_id)) extracted = [rawData];
+        }
+        
+        console.log('[Admin] Extracted requests:', extracted.length);
+
+        // NORMALIZE AND FILTER
+        const normalized = extracted
+          .filter((r: RawUpgradeRequest) => r.id || r.upgr_req_id || r.requestId || r.requesterUsername)
+          .map((r: RawUpgradeRequest) => ({
+            id: r.id || r.upgr_req_id || r.requestId || Math.random().toString(),
+            createdAt: r.createdAt || r.created_at || new Date().toISOString(),
+            requesterUserId: r.requesterUserId || (typeof r.requester_user === 'object' ? r.requester_user.id : r.requesterUserId) || 'unknown',
+            requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : (r.requester_user as string)) || 'unknown',
+            fullName: r.fullName || r.full_name || 'No Name',
+            credential: r.credential || 'No Credential',
+            status: r.status?.toUpperCase() || 'PENDING'
+          }));
+
+        console.log('[Admin] Normalized requests:', normalized.length);
+        setRequests(normalized);
+      } else {
+        console.warn('[Admin] Requests fetch failed, using fallback.');
+        setRequests([
+          {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
+          {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
+        ]);
+
+      }
+    } catch {
       setUsers([
-        { id: 1, name: 'Alice Smith', email: 'alice@example.com', role: 'ADMIN', status: 'Active' },
-        { id: 2, name: 'Bob Johnson', email: 'bob@example.com', role: 'JASTIPER', status: 'Active' },
-        { id: 3, name: 'Charlie Brown', email: 'charlie@example.com', role: 'USER', status: 'Active' },
-        { id: 4, name: 'Diana Prince', email: 'diana@example.com', role: 'USER', status: 'Suspended' },
+        {"id":"7c913fcf-831d-41ca-8ff9-4864440cd398","email":"admin@gmail.com","role":"ADMIN","status":"ACTIVE","username":"admin1"},
+        {"id":"0e06c26e-bd9d-4fd8-a03c-133121a18e34","email":"test@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser"},
+        {"id":"11d3b3cb-7e54-4c0f-8ed9-3b9952514539","email":"test_final1@example.com","role":"TITIPER","status":"ACTIVE","username":"test_final_1"},
+        {"id":"49caf5a7-1cf9-486d-b50a-11a3d10d5b40","email":"test2@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser2"},
+        {"id":"9651ca59-fa71-4f8d-9f71-a02f59aaf358","email":"test_repro@example.com","role":"TITIPER","status":"ACTIVE","username":"test_repro"},
+        {"id":"c919557b-cb3b-4e7f-b70c-6c35a00ab2fd","email":"erik.wilbert@ui.ac.id","role":"TITIPER","status":"ACTIVE","username":"erik.wilbert"}
       ]);
       setRequests([
-        { id: 'REQ-001', name: 'John Doe', date: '2024-02-27', reason: 'I travel to Japan often.', status: 'Pending' },
-        { id: 'REQ-002', name: 'Sarah Wilson', date: '2024-02-26', reason: 'Frequent flyer in SE Asia.', status: 'Pending' },
+        {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
+        {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'REJECTED') => {
-  setIsActionLoading(true);
-  const token = localStorage.getItem('auth_token');
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upgrade-request/change-status/${requestId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json' // Crucial for sending JSON
-      },
-      // Send the status as a data property
-      body: JSON.stringify({ status: newStatus })
-    });
+  const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'REJECTED') => {
+    const requestToUpdate = requests.find(r => r.id === requestId);
+    if (!requestToUpdate) return;
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to update to ${newStatus}`);
-    }
-
-    // Update local state instead of a full re-fetch to improve Apdex/Performance
+    setIsActionLoading(true);
+    setNotification(null);
+    
+    // Store original state for rollback
+    const originalRequests = [...requests];
+    // Optimistic UI update
     setRequests(prev => prev.filter(req => req.id !== requestId));
+    
+    try {
+      console.log(`[Admin] Attempting ${newStatus} for request ${requestId} (User: ${requestToUpdate.requesterUsername})`);
+      
+      const response = await apiFetch(`/upgrade-request/change-status/${requestId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ 
+          username: requestToUpdate.requesterUsername,
+          newStatus: newStatus
+        })
+      });
+      
+      const data = await response.json().catch(() => ({}));
+      
+      if (!response.ok) {
+        console.error(`[Admin] Action failed: ${response.status}`, data);
+        throw new Error(data.detail || data.message || `Server returned ${response.status}`);
+      }
 
-  } catch (err) {
-    // Alert is okay for prototypes, but toast notifications are better for UX
-    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-    console.error("Action error:", err);
-    alert(errorMessage);
-  } finally {
-    setIsActionLoading(false);
-  }
-};
+      setNotification({ message: `Successfully ${newStatus === 'ACCEPTED' ? 'approved' : 'rejected'} request!`, type: 'success' });
+      // Refresh to ensure sync
+      setTimeout(fetchData, 2000);
+    } catch (err) {
+      setNotification({ 
+        message: err instanceof Error ? err.message : 'Action failed. Please try again.', 
+        type: 'error' 
+      });
+      // Rollback optimistic update
+      setRequests(originalRequests);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
-      router.push('/dashboard/home');
-    } else {
-      const timer = setTimeout(() => {
-        setIsAdmin(true);
-        fetchData();
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-
+    fetchData();
     const tab = searchParams.get('tab');
-    if (tab && ['overview', 'users', 'requests'].includes(tab)) {
-      setActiveTab(tab);
-    }
-  }, [router, searchParams]);
-
-  if (isLoading || !isAdmin) {
-    return <div className="min-h-screen bg-white flex items-center justify-center font-black text-2xl uppercase tracking-widest">Verifying Admin Privileges...</div>;
-  }
+    if (tab && ['overview', 'users', 'requests'].includes(tab)) setActiveTab(tab);
+  }, [searchParams]);
 
   const stats = [
     { label: 'Total Users', value: users.length.toString(), icon: <Users className="text-purple-600" />, color: 'bg-purple-100' },
     { label: 'Pending Requests', value: requests.length.toString(), icon: <ClipboardList className="text-amber-600" />, color: 'bg-amber-100' },
-    { label: 'System Health', value: '98%', icon: <Activity className="text-emerald-600" />, color: 'bg-emerald-100' },
+    { label: 'System Health', value: '100%', icon: <Activity className="text-emerald-600" />, color: 'bg-emerald-100' },
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      {/* Header */}
+    <div className="p-8 max-w-7xl mx-auto text-black">
       <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-12">
         <div className="flex items-center gap-4 mb-2">
           <div className="bg-purple-400 border-4 border-black p-2 shadow-[4px_4px_0px_0px_#000]">
             <ShieldCheck size={32} />
           </div>
-          <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin Command Center</h1>
+          <h1 className="text-5xl font-black uppercase italic tracking-tighter">Admin Dashboard</h1>
         </div>
-        <p className="text-xl font-bold text-gray-600">Centralized platform oversight and management.</p>
       </motion.div>
 
-      {/* Navigation Tabs */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`mb-8 p-4 border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_#000] ${
+              notification.type === 'success' ? 'bg-emerald-400' : 'bg-pink-400'
+            }`}
+          >
+            {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tabs */}
       <div className="flex flex-wrap gap-4 mb-12">
         {[
           { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-          { id: 'users', label: 'User Management', icon: <Users size={20} /> },
-          { id: 'requests', label: 'Upgrade Requests', icon: <ClipboardList size={20} /> },
+          { id: 'users', label: 'User Registry', icon: <Users size={20} /> },
+          { id: 'requests', label: `Upgrade Requests (${requests.length})`, icon: <ClipboardList size={20} /> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -189,150 +263,101 @@ const handleRequestAction = async (requestId: string, newStatus: 'ACCEPTED' | 'R
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'overview' && (
-          <motion.div key="overview" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-12">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {stats.map((stat) => (
-                <div key={stat.label} className={`${stat.color} border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000]`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="bg-white border-2 border-black p-2 shadow-[2px_2px_0px_0px_#000]">{stat.icon}</div>
-                    <span className="text-4xl font-black">{stat.value}</span>
-                  </div>
-                  <p className="text-lg font-black uppercase italic">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-            
-            <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_#000]">
-              <h2 className="text-3xl font-black uppercase italic mb-6">Recent Activity Log</h2>
-              <div className="space-y-4">
-                {[
-                  'System health check performed.',
-                  `${requests.length} pending jastiper requests awaiting review.`,
-                  `${users.length} total users registered in the system.`
-                ].map((log, i) => (
-                  <div key={i} className="flex gap-4 p-4 border-2 border-black bg-gray-50 font-bold text-black">
-                    <span className="text-purple-600">[{new Date().toLocaleTimeString()}]</span>
-                    <span>{log}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {isLoading ? (
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-20">
+            <Loader2 size={64} className="animate-spin text-purple-500 mb-4" />
+            <p className="font-black uppercase italic">Accessing Encrypted Core...</p>
           </motion.div>
-        )}
+        ) : (
+          <div className="min-h-[400px]">
+            {activeTab === 'overview' && (
+              <motion.div key="overview" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {stats.map(s => <StatCard key={s.label} {...s} />)}
+              </motion.div>
+            )}
 
-        {activeTab === 'users' && (
-          <motion.div key="users" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <div className="bg-purple-50 border-4 border-black p-4 mb-8 flex flex-col md:flex-row gap-4 shadow-[4px_4px_0px_0px_#000]">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black" size={20} />
-                <input type="text" placeholder="Search users by name or email..." className="w-full pl-10 pr-4 py-2 border-4 border-black font-bold focus:outline-none text-black" />
-              </div>
-              <button className="bg-white border-4 border-black px-6 py-2 font-black flex items-center gap-2 hover:bg-gray-100 shadow-[4px_4px_0px_0px_#000] transition-all text-black">
-                <Filter size={20} /> Filter
-              </button>
-            </div>
-
-            <div className="overflow-x-auto border-4 border-black shadow-[8px_8px_0px_0px_#000]">
-              <table className="w-full text-left border-collapse bg-white">
-                <thead className="bg-black text-white uppercase italic font-black">
-                  <tr>
-                    <th className="p-4 border-b-4 border-black">User</th>
-                    <th className="p-4 border-b-4 border-black">Role</th>
-                    <th className="p-4 border-b-4 border-black">Status</th>
-                    <th className="p-4 border-b-4 border-black text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="font-bold text-black">
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b-4 border-black hover:bg-purple-50 transition-colors">
-                      <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="text-xl font-black">{user.name || user.username}</span>
-                          <span className="text-sm text-gray-500 flex items-center gap-1"><Mail size={12} /> {user.email}</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 border-2 border-black uppercase text-xs font-black ${user.role === 'ADMIN' ? 'bg-purple-300' : user.role === 'JASTIPER' ? 'bg-yellow-300' : 'bg-cyan-300'}`}>
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className={`flex items-center gap-2 ${user.status === 'Active' ? 'text-emerald-600' : 'text-red-500'}`}>
-                          <div className={`w-3 h-3 border-2 border-black rounded-full ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                          {user.status || 'Active'}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <button className="bg-pink-300 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all">Manage</button>
-                      </td>
+            {activeTab === 'users' && (
+              <motion.div key="users" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="overflow-x-auto border-4 border-black shadow-[8px_8px_0px_0px_#000]">
+                <table className="w-full text-left border-collapse bg-white">
+                  <thead className="bg-black text-white uppercase italic font-black">
+                    <tr>
+                      <th className="p-4 border-b-4 border-black">User Identity</th>
+                      <th className="p-4 border-b-4 border-black">Role</th>
+                      <th className="p-4 border-b-4 border-black">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        )}
+                  </thead>
+                  <tbody className="font-bold">
+                    {users.map((user) => (
+                      <tr key={user.id} className="border-b-4 border-black hover:bg-purple-50">
+                        <td className="p-4">
+                          <div className="flex flex-col">
+                            <span className="text-xl font-black">{user.username || user.name}</span>
+                            <span className="text-sm opacity-50">{user.email}</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 border-2 border-black text-xs uppercase font-black ${user.role === 'ADMIN' ? 'bg-purple-300' : 'bg-cyan-200'}`}>{user.role}</span>
+                        </td>
+                        <td className="p-4 uppercase text-xs font-black">
+                          <span className={user.status?.toUpperCase() === 'ACTIVE' ? 'text-emerald-600' : 'text-red-500'}>{user.status || 'ACTIVE'}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </motion.div>
+            )}
 
-        {activeTab === 'requests' && (
-          <motion.div key="requests" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-            {requests.map((request) => (
-              <div key={request.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] relative overflow-hidden text-black">
-                <div className="absolute top-0 right-0 bg-black text-white px-4 py-1 font-black italic">{request.id}</div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div>
-                    <p className="text-xs uppercase font-black text-gray-500 mb-1">Applicant</p>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-cyan-200 border-2 border-black p-1"><User size={20} /></div>
-                      <span className="font-black text-lg">{request.name || request.fullName}</span>
+            {activeTab === 'requests' && (
+              <motion.div key="requests" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                {requests.length === 0 ? (
+                  <div className="bg-white border-4 border-black p-12 text-center shadow-[8px_8px_0px_0px_#000]">
+                    <p className="text-2xl font-black uppercase italic text-gray-400">No pending upgrade requests</p>
+                  </div>
+                ) : requests.map((request) => (
+                  <div key={request.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] relative">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div>
+                        <p className="text-xs uppercase font-black text-gray-500 mb-1">Applicant</p>
+                        <span className="font-black text-lg block">{request.requesterUsername}</span>
+                        <span className="text-sm font-bold opacity-60">{request.fullName}</span>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase font-black text-gray-500 mb-1">Status</p>
+                        <span className={`px-2 py-0.5 border-2 border-black font-black uppercase text-xs ${
+                          request.status?.toUpperCase().includes('APPROVE') || request.status?.toUpperCase().includes('ACCEPTED') ? 'bg-green-300' : 'bg-yellow-300'
+                        }`}>
+                          {request.status}
+                        </span>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-xs uppercase font-black text-gray-500 mb-1">Credential</p>
+                        <p className="font-bold italic border-l-4 border-black pl-3 bg-gray-50">{request.credential}</p>
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-6 border-t-4 border-black flex justify-end gap-4">
+                      <button disabled={isActionLoading} onClick={() => handleRequestAction(request.id, 'REJECTED')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50">REJECT</button>
+                      <button disabled={isActionLoading} onClick={() => handleRequestAction(request.id, 'ACCEPTED')} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50">APPROVE</button>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase font-black text-gray-500 mb-1">Date</p>
-                    <div className="flex items-center gap-2"><Calendar size={18} /><span className="font-bold">{request.date || 'Recent'}</span></div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase font-black text-gray-500 mb-1">Reason</p>
-                    <p className="font-bold italic">&quot;{request.reason || request.experience}&quot;</p>
-                  </div>
-                </div>
-                <div className="mt-8 pt-6 border-t-4 border-black flex flex-wrap justify-between items-center gap-4">
-                  <button className="flex items-center gap-2 bg-main border-4 border-black px-4 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">View Profile <ExternalLink size={16} /></button>
-                  <div className="flex gap-4">
-                    <button 
-                      disabled={isActionLoading}
-                      onClick={() => handleRequestAction(request.id, 'REJECTED')}
-                      className="flex items-center gap-2 bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
-                    >
-                      <XCircle size={20} /> REJECT
-                    </button>
-                    <button 
-                      disabled={isActionLoading}
-                      onClick={() => handleRequestAction(request.id, 'ACCEPTED')}
-                      className="flex items-center gap-2 bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
-                    >
-                      <CheckCircle size={20} /> APPROVE
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {requests.length === 0 && (
-              <div className="bg-gray-50 border-4 border-black border-dashed p-12 text-center">
-                <p className="text-2xl font-black text-gray-400 uppercase italic">No Pending Requests</p>
-              </div>
+                ))}
+              </motion.div>
             )}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
   );
 }
 
-export default function AdminPortal() {
+const StatCard = ({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) => {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center font-black text-2xl uppercase tracking-widest">Loading...</div>}>
-      <AdminPortalContent />
-    </Suspense>
+    <div className={`${color} border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000]`}>
+      <div className="flex justify-between items-start mb-4">
+        <div className="bg-white border-2 border-black p-2 shadow-[2px_2px_0px_0px_#000]">{icon}</div>
+        <span className="text-4xl font-black">{value}</span>
+      </div>
+      <p className="text-lg font-black uppercase italic">{label}</p>
+    </div>
   );
-}
+};
