@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Transaction } from '@/types/wallet';
 import { WalletService } from '@/services/wallet/wallet.service';
 
-export const useWallet = (initialUserId: string = 'user123') => {
+export const useWallet = (initialUserId: string) => {
   const [userId, setUserId] = useState<string>(initialUserId);
   const [balance, setBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);

@@ -12,7 +12,7 @@ import {
   TransactionHistory
 } from '@/features/wallet/components';
 
-export default function WalletPage() {
+export default function WalletClient({ initialUserId }: { initialUserId: string }) {
   const router = useRouter();
   
   const {
@@ -26,7 +26,7 @@ export default function WalletPage() {
     success,
     fetchWalletData,
     handleAction,
-  } = useWallet('user123');
+  } = useWallet(initialUserId);
 
   return (
     <div className="min-h-screen bg-background flex justify-center p-6 py-12">
@@ -54,8 +54,7 @@ export default function WalletPage() {
             />
 
             <UserIdConfigurator 
-              userId={userId} 
-              setUserId={setUserId} 
+              username={'temporary holder'} 
             />
 
             {/* Alerts */}

@@ -92,7 +92,7 @@ export default function AccountPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div onClick={() => router.push('/wallet')} className="cursor-pointer h-full">
+            <div onClick={() => router.push('/dashboard/wallet')} className="cursor-pointer h-full">
               <DashboardActionCard 
                 icon={<CreditCard size={32} />} 
                 title="Wallet & Payments" 

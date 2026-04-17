@@ -1,10 +1,11 @@
 import { Transaction, WalletActionRequest } from '@/types/wallet';
+import { apiFetch } from '@/lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const WalletService = {
   getWalletBalance: async (userId: string): Promise<number> => {
-    const res = await fetch(`${API_URL}/api/wallet/${userId}`);
+    const res = await apiFetch(`/wallet/${userId}`);
     if (!res.ok) {
       throw new Error('Failed to fetch wallet balance');
     }
@@ -13,7 +14,7 @@ export const WalletService = {
   },
 
   getTransactions: async (userId: string): Promise<Transaction[]> => {
-    const res = await fetch(`${API_URL}/api/wallet/${userId}/transactions`);
+    const res = await apiFetch(`/wallet/${userId}/transactions`);
     if (!res.ok) {
       throw new Error('Failed to fetch transactions');
     }
@@ -21,7 +22,7 @@ export const WalletService = {
   },
 
   topUp: async (data: WalletActionRequest): Promise<void> => {
-    const res = await fetch(`${API_URL}/api/wallet/topup`, {
+    const res = await apiFetch(`/wallet/topup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -32,7 +33,7 @@ export const WalletService = {
   },
 
   withdraw: async (data: WalletActionRequest): Promise<void> => {
-    const res = await fetch(`${API_URL}/api/wallet/withdraw`, {
+    const res = await apiFetch(`/wallet/withdraw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
