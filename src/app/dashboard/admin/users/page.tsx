@@ -31,10 +31,10 @@ export default function AllUsersPage() {
       if (response.ok) {
         const rawData = await response.json();
         let extracted = Array.isArray(rawData) ? rawData : (rawData.users || rawData.data || rawData.content || []);
-        
+
         // STRICT FILTERING: Only items that look like users
         if (Array.isArray(extracted)) {
-          extracted = extracted.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) => 
+          extracted = extracted.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) =>
             (u.id || u.email) && !u.upgr_req_id && !u.requester_user
           );
         }
@@ -42,7 +42,7 @@ export default function AllUsersPage() {
         if (extracted.length === 0 && !Array.isArray(rawData)) throw new Error('Empty');
         setUsers(extracted);
       } else {
-        // Silent Fallback to CSV data
+        // Fallback to static data if API fails
         setUsers([
           {"id":"7c913fcf-831d-41ca-8ff9-4864440cd398","email":"admin@gmail.com","role":"ADMIN","status":"ACTIVE","username":"admin1"},
           {"id":"0e06c26e-bd9d-4fd8-a03c-133121a18e34","email":"test@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser"},
@@ -63,6 +63,38 @@ export default function AllUsersPage() {
       ]);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleBan(userId: string | number) {
+    if (!confirm('Are you sure you want to BAN this user?')) return;
+    try {
+      const response = await apiFetch(`/user/${userId}/ban`, { method: 'PATCH' });
+      if (response.ok) {
+        alert('User banned successfully');
+        fetchUsers();
+      } else {
+        alert('Failed to ban user');
+      }
+    } catch (error) {
+      console.error('Error banning user:', error);
+      alert('Error banning user');
+    }
+  }
+
+  async function handleDemote(userId: string | number) {
+    if (!confirm('Are you sure you want to DEMOTE this Jastiper?')) return;
+    try {
+      const response = await apiFetch(`/user/${userId}/demote`, { method: 'PATCH' });
+      if (response.ok) {
+        alert('User demoted successfully');
+        fetchUsers();
+      } else {
+        alert('Failed to demote user');
+      }
+    } catch (error) {
+      console.error('Error demoting user:', error);
+      alert('Error demoting user');
     }
   }
 
@@ -91,6 +123,7 @@ export default function AllUsersPage() {
                   <th className="p-4 border-b-4 border-black">Identity</th>
                   <th className="p-4 border-b-4 border-black">Role</th>
                   <th className="p-4 border-b-4 border-black">Status</th>
+                  <th className="p-4 border-b-4 border-black">Actions</th>
                 </tr>
               </thead>
               <tbody className="font-bold">
@@ -107,6 +140,26 @@ export default function AllUsersPage() {
                     </td>
                     <td className="p-4 uppercase text-xs font-black">
                       <span className={user.status?.toUpperCase() === 'ACTIVE' ? 'text-emerald-600' : 'text-red-500'}>{user.status || 'ACTIVE'}</span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex gap-2">
+                        {user.role === 'JASTIPER' && (
+                          <button
+                            onClick={() => handleDemote(user.id)}
+                            className="px-2 py-1 bg-yellow-300 border-2 border-black text-xs font-black uppercase hover:bg-yellow-400 transition-colors shadow-[2px_2px_0px_0px_#000]"
+                          >
+                            Demote
+                          </button>
+                        )}
+                        {user.role !== 'ADMIN' && user.status?.toUpperCase() !== 'BANNED' && (
+                          <button
+                            onClick={() => handleBan(user.id)}
+                            className="px-2 py-1 bg-red-400 border-2 border-black text-xs font-black uppercase text-white hover:bg-red-500 transition-colors shadow-[2px_2px_0px_0px_#000]"
+                          >
+                            Ban
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
