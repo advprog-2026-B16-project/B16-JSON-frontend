@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  UserCircle, 
-  Bell, 
-  Lock, 
+import {
+  UserCircle,
+  Bell,
+  Lock,
   Globe,
   Settings,
   HelpCircle,
@@ -13,7 +13,8 @@ import {
   CheckCircle,
   AlertCircle,
   User,
-  MapPin
+  MapPin,
+  Image as ImageIcon
 } from 'lucide-react';
 import { updateProfile, getProfile } from './actions';
 import { ProfileResponseDTO } from '@/types/api';
@@ -65,17 +66,6 @@ export default function SettingsPage() {
           <div className="bg-gray-200 border-4 border-black p-4 shadow-[6px_6px_0px_0px_#000] w-20 h-20"></div>
           <div className="h-16 bg-gray-200 border-4 border-black w-64"></div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-1 space-y-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-16 bg-gray-100 border-4 border-black w-full shadow-[6px_6px_0px_0px_#000]"></div>
-            ))}
-          </div>
-          <div className="lg:col-span-2 space-y-10">
-            <div className="h-64 bg-gray-50 border-4 border-black w-full shadow-[10px_10px_0px_0px_#000]"></div>
-            <div className="h-48 bg-gray-50 border-4 border-black w-full shadow-[10px_10px_0px_0px_#000]"></div>
-          </div>
-        </div>
       </div>
     );
   }
@@ -104,10 +94,10 @@ export default function SettingsPage() {
           <SidebarLink icon={<Lock size={20} />} label="Security & Privacy" />
           <SidebarLink icon={<Globe size={20} />} label="Region & Language" />
           <SidebarLink icon={<HelpCircle size={20} />} label="Help & Feedback" />
-          
+
           <div className="pt-4 mt-8 border-t-2 border-black border-dashed">
             <p className="text-xs font-black uppercase text-gray-400 mb-2">Development Tools</p>
-            <button 
+            <button
               onClick={handleResetRole}
               className="w-full flex items-center gap-4 p-4 font-black uppercase text-sm border-4 border-black bg-pink-100 shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-black"
             >
@@ -123,13 +113,14 @@ export default function SettingsPage() {
               <h3 className="text-3xl font-black uppercase mb-8 underline decoration-8 decoration-black/10 underline-offset-4 flex items-center gap-3">
                 <User size={28} /> Profile Details
               </h3>
-              
+
               <div className="space-y-6">
                 <div>
                   <label className="block text-xs font-black uppercase text-gray-500 mb-1">Full Name</label>
-                  <input 
+                  <input
                     name="fullName"
                     defaultValue={profile?.fullName}
+                    required
                     className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-yellow-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
                   />
                 </div>
@@ -150,8 +141,21 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
+                  <label className="block text-xs font-black uppercase text-gray-500 mb-1">Avatar URL</label>
+                  <div className="relative">
+                    <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      name="avatarUrl"
+                      defaultValue={profile?.avatarUrl}
+                      placeholder="https://example.com/avatar.jpg"
+                      className="w-full bg-white border-4 border-black p-4 pl-12 font-bold focus:outline-none focus:bg-purple-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
                   <label className="block text-xs font-black uppercase text-gray-500 mb-1">Personal Bio</label>
-                  <textarea 
+                  <textarea
                     name="bio"
                     defaultValue={profile?.bio}
                     rows={3}
@@ -163,7 +167,7 @@ export default function SettingsPage() {
                   <label className="block text-xs font-black uppercase text-gray-500 mb-1">Location</label>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input 
+                    <input
                       name="location"
                       defaultValue={profile?.location}
                       className="w-full bg-white border-4 border-black p-4 pl-12 font-bold focus:outline-none focus:bg-pink-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all"
@@ -174,15 +178,15 @@ export default function SettingsPage() {
             </div>
 
             <div className="pt-8 border-t-4 border-black flex flex-col sm:flex-row gap-6">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSaving}
-                className="neo-button bg-black text-white px-8 py-4 text-xl flex items-center gap-3 justify-center min-w-[200px]"
+                className="neo-button bg-black text-white px-8 py-4 text-xl flex items-center gap-3 justify-center min-w-[200px]"  
               >
-                {isSaving ? <Loader2 className="animate-spin" /> : <Save />} 
+                {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
                 {isSaving ? 'Saving...' : 'Save All Changes'}
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => window.location.reload()}
                 className="border-4 border-black px-8 py-4 font-black uppercase hover:bg-red-400 transition-all shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none text-black"
@@ -199,9 +203,9 @@ export default function SettingsPage() {
 
 function SidebarLink({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
   return (
-    <button className={`w-full flex items-center gap-4 p-5 font-black uppercase text-lg border-4 border-black transition-all ${active ? 'bg-main translate-x-1 translate-y-1 shadow-none' : 'bg-white shadow-[6px_6px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000]'} text-black`}>
+    <div className={`flex items-center gap-4 p-4 font-black uppercase text-sm border-4 border-black shadow-[4px_4px_0px_0px_#000] transition-all cursor-pointer ${active ? 'bg-main translate-x-1 translate-y-1 shadow-none' : 'bg-white hover:bg-gray-50'}`}>
       {icon}
       {label}
-    </button>
+    </div>
   );
 }

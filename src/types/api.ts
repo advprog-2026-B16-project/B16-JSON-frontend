@@ -19,7 +19,10 @@ export interface ProfileResponseDTO {
   fullName: string;
   bio: string;
   location: string;
+  avatarUrl: string;
   role: string;
+  status: string;
+  successfulTransactions?: number;
 }
 
 export interface UpgradeRequest {
