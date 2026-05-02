@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Loader2 } from 'lucide-react';
+import { Users, Loader2, ExternalLink } from 'lucide-react'; import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 
 interface UserData {
@@ -131,7 +131,7 @@ export default function AllUsersPage() {
                   <tr key={user.id} className="border-b-4 border-black hover:bg-purple-50">
                     <td className="p-4">
                       <div className="flex flex-col">
-                        <span className="text-xl font-black">{user.username || user.name}</span>
+                        <div className="flex items-center gap-2"><span className="text-xl font-black">{user.username || user.name}</span><Link href={`/dashboard/account/public/${user.username}`}><ExternalLink size={16} className="text-purple-600 hover:text-purple-800" /></Link></div>
                         <span className="text-sm opacity-50">{user.email}</span>
                       </div>
                     </td>

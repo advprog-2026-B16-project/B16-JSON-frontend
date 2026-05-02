@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { 
+import Link from 'next/link'; import { useState } from 'react';
+import Link from 'next/link'; import { motion } from 'framer-motion';
+import Link from 'next/link'; import { 
   Search, 
   MapPin, 
   ArrowRight,
@@ -16,7 +16,7 @@ interface MarketplaceItem {
   price: string;
   category: string;
   color: string;
-  requester: string;
+  requester: string; requesterUsername: string;
 }
 
 export default function MarketplacePage() {
@@ -33,7 +33,7 @@ export default function MarketplacePage() {
       price: 'Rp 21.000.000',
       category: 'Electronics',
       color: 'bg-cyan-300',
-      requester: 'Budi S.'
+      requester: 'Budi S.', requesterUsername: 'budi_s'
     },
     {
       id: 2,
@@ -42,7 +42,7 @@ export default function MarketplacePage() {
       price: 'Rp 450.000',
       category: 'Food & Snacks',
       color: 'bg-green-400',
-      requester: 'Siti A.'
+      requester: 'Siti A.', requesterUsername: 'siti_a'
     },
     {
       id: 3,
@@ -51,7 +51,7 @@ export default function MarketplacePage() {
       price: 'Rp 1.200.000',
       category: 'Fashion',
       color: 'bg-pink-300',
-      requester: 'Andi R.'
+      requester: 'Andi R.', requesterUsername: 'andi_r'
     },
     {
       id: 4,
@@ -60,7 +60,7 @@ export default function MarketplacePage() {
       price: 'Rp 850.000',
       category: 'Collectibles',
       color: 'bg-yellow-400',
-      requester: 'Dewi K.'
+      requester: 'Dewi K.', requesterUsername: 'dewi_k'
     },
     {
       id: 5,
@@ -69,7 +69,7 @@ export default function MarketplacePage() {
       price: 'Rp 2.800.000',
       category: 'Beauty',
       color: 'bg-purple-300',
-      requester: 'Lina M.'
+      requester: 'Lina M.', requesterUsername: 'lina_m'
     },
     {
       id: 6,
@@ -78,7 +78,7 @@ export default function MarketplacePage() {
       price: 'Rp 150.000',
       category: 'Food & Snacks',
       color: 'bg-orange-300',
-      requester: 'Bambang G.'
+      requester: 'Bambang G.', requesterUsername: 'bambang_g'
     }
   ];
 
@@ -159,7 +159,7 @@ function MarketplaceCard({ item }: { item: MarketplaceItem }) {
           <div className="w-8 h-8 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-xs">
             {item.requester[0]}
           </div>
-          <span className="font-bold text-sm italic">Requested by {item.requester}</span>
+          <span className="font-bold text-sm italic">Requested by <Link href={`/dashboard/account/public/${item.requesterUsername}`} className="underline hover:text-purple-600">{item.requester}</Link></span>
         </div>
 
         <div className="bg-white border-4 border-black p-4 mb-4 shadow-[4px_4px_0px_0px_#000]">

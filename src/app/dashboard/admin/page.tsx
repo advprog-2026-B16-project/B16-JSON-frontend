@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
+import Link from 'next/link'; import { useEffect, useState } from 'react';
+import Link from 'next/link'; import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link'; import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link'; import {
   ShieldCheck,
   Users,
   ClipboardList,
@@ -14,8 +14,8 @@ import {
   Trash2,
   ArrowDownCircle
 } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
-import { UpgradeRequestResponse } from '@/types/api';
+import Link from 'next/link'; import { apiFetch } from '@/lib/api';
+import Link from 'next/link'; import { UpgradeRequestResponse } from '@/types/api';
 
 interface UserData {
   id: string;
@@ -37,7 +37,7 @@ interface RawUpgradeRequest {
   requester_user?: string | { id: string; username: string };
   fullName?: string;
   full_name?: string;
-  credential?: string;
+  credential?: string; socialMediaUrl?: string;
   status?: string;
 }
 
@@ -83,7 +83,7 @@ export default function AdminPortal() {
             requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : (r.requester_user as string)) || 'unknown',
             fullName: r.fullName || r.full_name || 'No Name',
             credential: r.credential || r.credential || 'No Credential',
-            status: r.status?.toUpperCase() || 'PENDING'
+            status: r.status?.toUpperCase() || 'PENDING', socialMediaUrl: r.socialMediaUrl || 'None'
           }));
         setRequests(normalized);
       }
@@ -223,7 +223,7 @@ export default function AdminPortal() {
                       <tr key={user.id} className="border-b-4 border-black hover:bg-purple-50">
                         <td className="p-4">
                           <div className="flex flex-col">
-                            <span className="text-xl font-black">{user.username || user.name}</span>
+                            <Link href={`/dashboard/account/public/${user.username}`} className="text-xl font-black hover:underline">{user.username || user.name}</Link>
                             <span className="text-sm opacity-50">{user.email}</span>
                           </div>
                         </td>
@@ -261,7 +261,7 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       <div>
                         <p className="text-xs uppercase font-black text-gray-500 mb-1">Applicant</p>
-                        <span className="font-black text-lg block">{request.requesterUsername}</span>
+                        <Link href={`/dashboard/account/public/${request.requesterUsername}`} className="font-black text-lg block hover:underline">{request.requesterUsername}</Link>
                         <span className="text-sm font-bold opacity-60">{request.fullName}</span>
                       </div>
                       <div>
@@ -271,6 +271,8 @@ export default function AdminPortal() {
                       <div className="md:col-span-2">
                         <p className="text-xs uppercase font-black text-gray-500 mb-1">Credential</p>
                         <p className="font-bold italic border-l-4 border-black pl-3 bg-gray-50 break-all">{request.credential}</p>
+                        <p className="text-xs uppercase font-black text-gray-500 mt-2 mb-1">Social Media</p>
+                        <p className="font-bold italic border-l-4 border-black pl-3 bg-gray-50 break-all">{request.socialMediaUrl || "None"}</p>
                       </div>
                     </div>
                     {request.status === 'PENDING' && (

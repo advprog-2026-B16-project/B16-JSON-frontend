@@ -81,7 +81,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         
         <div className="flex justify-center gap-4 mb-10">
           <span className={`px-6 py-2 text-sm font-black uppercase border-4 border-black ${profile.role === 'ADMIN' ? 'bg-purple-400 text-white' : 'bg-black text-white'}`}>{profile.role}</span>      
-          <span className={`px-6 py-2 text-sm font-black uppercase border-4 border-black bg-white`}>{profile.status}</span>
+          <span className={`px-6 py-2 text-sm font-black uppercase border-4 border-black ${profile.status === "PENDING_JASTIPER" ? "bg-amber-300" : profile.status === "BANNED" ? "bg-red-400" : "bg-white"}`}>{profile.status.replace("_", " ")}</span>
         </div>
 
         {profile.bio && (

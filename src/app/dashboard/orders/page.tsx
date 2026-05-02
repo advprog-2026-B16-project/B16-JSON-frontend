@@ -1,12 +1,12 @@
 'use client';
 
-import { ClipboardList, ShoppingCart, User, MapPin } from 'lucide-react';
+import Link from 'next/link'; import { ClipboardList, ShoppingCart, User, MapPin } from 'lucide-react';
 
 export default function OrdersPage() {
   const mockOrders = [
-    { id: 1024, buyer: 'Budi Santoso', item: 'iPhone 15 Pro Max', date: 'Feb 25, 2026', status: 'Pending Approval', statusColor: 'bg-yellow-400' },
-    { id: 1025, buyer: 'Siti Aminah', item: 'SK-II Facial Treatment', date: 'Feb 26, 2026', status: 'In Transit', statusColor: 'bg-cyan-400' },
-    { id: 1026, buyer: 'Andi Rianto', item: 'Matcha Powder (Uji)', date: 'Feb 27, 2026', status: 'Delivered', statusColor: 'bg-green-400' },
+    { id: 1024, buyer: 'Budi Santoso', buyerUsername: 'budi_s', item: 'iPhone 15 Pro Max', date: 'Feb 25, 2026', status: 'Pending Approval', statusColor: 'bg-yellow-400' },
+    { id: 1025, buyer: 'Siti Aminah', buyerUsername: 'siti_a', item: 'SK-II Facial Treatment', date: 'Feb 26, 2026', status: 'In Transit', statusColor: 'bg-cyan-400' },
+    { id: 1026, buyer: 'Andi Rianto', buyerUsername: 'andi_r', item: 'Matcha Powder (Uji)', date: 'Feb 27, 2026', status: 'Delivered', statusColor: 'bg-green-400' },
   ];
 
   return (
@@ -46,7 +46,7 @@ export default function OrdersPage() {
                 <h3 className="text-2xl font-black uppercase">Order #{order.id}</h3>
                 <p className="font-bold text-gray-600">{order.item}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <User size={16} /> <span className="text-sm font-bold italic">{order.buyer}</span>
+                  <User size={16} /> <span className="text-sm font-bold italic">Buyer: <Link href={`/dashboard/account/public/${order.buyerUsername}`} className="underline hover:text-purple-600">{order.buyer}</Link></span>
                 </div>
               </div>
             </div>

@@ -24,7 +24,7 @@ export default function JastiperUpgradePage() {
   
   const [formData, setFormData] = useState({
     fullName: '',
-    credential: '',
+    credential: '', socialMediaUrl: '',
     confirmPassword: ''
   });
 
@@ -47,8 +47,8 @@ export default function JastiperUpgradePage() {
     setError('');
 
     // Basic client-side validation
-    if (!formData.fullName || !formData.credential) {
-      setError('Full Name and Credential are required.');
+    if (!formData.fullName || !formData.credential || !formData.socialMediaUrl) {
+      setError('Full Name, Credential, and Social Media URL are required.');
       setIsSubmitting(false);
       return;
     }
@@ -58,7 +58,7 @@ export default function JastiperUpgradePage() {
         method: 'POST',
         body: JSON.stringify({
           fullName: formData.fullName,
-          credential: formData.credential
+          credential: formData.credential, socialMediaUrl: formData.socialMediaUrl
         }),
       });
 
@@ -164,6 +164,17 @@ export default function JastiperUpgradePage() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-black uppercase italic mb-2">Social Media URL</label>
+                  <input
+                    type="text"
+                    name="socialMediaUrl"
+                    required
+                    value={formData.socialMediaUrl}
+                    onChange={handleChange}
+                    placeholder="https://instagram.com/yourprofile"
+                    className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-pink-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black mb-6"
+                  />
+
                   <label className="block text-sm font-black uppercase italic mb-2">Credential (URL or Base64 Description)</label>
                   <textarea 
                     name="credential"
