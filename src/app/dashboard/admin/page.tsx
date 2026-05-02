@@ -1,21 +1,21 @@
 'use client';
 
-import Link from 'next/link'; import { useEffect, useState } from 'react';
-import Link from 'next/link'; import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link'; import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link'; import {
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
   ShieldCheck,
   Users,
   ClipboardList,
   Activity,
   LayoutDashboard,
   Loader2,
-  User as UserIcon,
   Trash2,
   ArrowDownCircle
 } from 'lucide-react';
-import Link from 'next/link'; import { apiFetch } from '@/lib/api';
-import Link from 'next/link'; import { UpgradeRequestResponse } from '@/types/api';
+import Link from 'next/link';
+import { apiFetch } from '@/lib/api';
+import { UpgradeRequestResponse } from '@/types/api';
 
 interface UserData {
   id: string;
@@ -37,7 +37,8 @@ interface RawUpgradeRequest {
   requester_user?: string | { id: string; username: string };
   fullName?: string;
   full_name?: string;
-  credential?: string; socialMediaUrl?: string;
+  credential?: string;
+  socialMediaUrl?: string;
   status?: string;
 }
 
@@ -59,13 +60,13 @@ export default function AdminPortal() {
 
       if (usersRes.ok) {
         const userData = await usersRes.json();
-        let extractedUsers = Array.isArray(userData) ? userData : (userData.content || userData.users || userData.data || []);
+        const extractedUsers = Array.isArray(userData) ? userData : (userData.content || userData.users || userData.data || []);
 
-        if (Array.isArray(extractedUsers)) {
-          extractedUsers = extractedUsers.filter((u: any) => (u.id || u.email) && !u.upgr_req_id && !u.requester_user);
-        }
+        const filteredUsers = Array.isArray(extractedUsers) 
+          ? extractedUsers.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) => (u.id || u.email) && !u.upgr_req_id && !u.requester_user)
+          : [];
 
-        setUsers(extractedUsers);
+        setUsers(filteredUsers);
       }
 
       // 2. Fetch Upgrade Requests
@@ -74,16 +75,17 @@ export default function AdminPortal() {
 
       if (requestsRes.ok) {
         const rawData = await requestsRes.json();
-        let extracted: RawUpgradeRequest[] = Array.isArray(rawData) ? rawData : (rawData.requests || rawData.data || rawData.content || []);
-        
-        const normalized = extracted.map((r: RawUpgradeRequest) => ({
+        const extracted: RawUpgradeRequest[] = Array.isArray(rawData) ? rawData : (rawData.requests || rawData.data || rawData.content || []);
+
+        const normalized: UpgradeRequestResponse[] = extracted.map((r: RawUpgradeRequest) => ({
             id: r.id || r.upgr_req_id || r.requestId || Math.random().toString(),
             createdAt: r.createdAt || r.created_at || new Date().toISOString(),
             requesterUserId: r.requesterUserId || (typeof r.requester_user === 'object' ? r.requester_user.id : r.requesterUserId) || 'unknown',
             requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : (r.requester_user as string)) || 'unknown',
             fullName: r.fullName || r.full_name || 'No Name',
-            credential: r.credential || r.credential || 'No Credential',
-            status: r.status?.toUpperCase() || 'PENDING', socialMediaUrl: r.socialMediaUrl || 'None'
+            credential: r.credential || 'No Credential',
+            status: r.status?.toUpperCase() || 'PENDING',
+            socialMediaUrl: r.socialMediaUrl || 'None'
           }));
         setRequests(normalized);
       }
@@ -109,12 +111,12 @@ export default function AdminPortal() {
       });
 
       if (response.ok) {
-        setNotification({ message: `Successfully ${newStatus === 'ACCEPTED' ? 'approved' : 'rejected'} request!`, type: 'success' });
+        setNotification({ message: `Successfully ${newStatus === 'ACCEPTED' ? 'approved' : 'rejected' } request!`, type: 'success' });
         fetchData();
       } else {
         throw new Error('Failed to update status');
       }
-    } catch (err) {
+    } catch {
       setNotification({ message: 'Action failed. Please try again.', type: 'error' });
     } finally {
       setIsActionLoading(false);
@@ -228,7 +230,7 @@ export default function AdminPortal() {
                           </div>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2 py-1 border-2 border-black text-xs uppercase font-black ${user.role === 'ADMIN' ? 'bg-purple-300' : 'bg-cyan-200'}`}>{user.role}</span>      
+                          <span className={`px-2 py-1 border-2 border-black text-xs uppercase font-black ${user.role === 'ADMIN' ? 'bg-purple-300' : 'bg-cyan-200'}`}>{user.role}</span>
                         </td>
                         <td className="p-4 uppercase text-xs font-black">
                           <span className={user.status?.toUpperCase() === 'ACTIVE' ? 'text-emerald-600' : 'text-red-500'}>{user.status || 'ACTIVE'}</span>

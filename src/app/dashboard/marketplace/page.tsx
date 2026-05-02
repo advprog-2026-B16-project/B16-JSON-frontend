@@ -1,13 +1,14 @@
 'use client';
 
-import Link from 'next/link'; import { useState } from 'react';
-import Link from 'next/link'; import { motion } from 'framer-motion';
-import Link from 'next/link'; import { 
-  Search, 
-  MapPin, 
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Search,
+  MapPin,
   ArrowRight,
   Plus
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface MarketplaceItem {
   id: number;
@@ -16,12 +17,13 @@ interface MarketplaceItem {
   price: string;
   category: string;
   color: string;
-  requester: string; requesterUsername: string;
+  requester: string;
+  requesterUsername: string;
 }
 
 export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const categories = ['All', 'Electronics', 'Fashion', 'Food & Snacks', 'Beauty', 'Collectibles'];
   const [activeCategory, setActiveCategory] = useState('All');
 
@@ -99,7 +101,7 @@ export default function MarketplacePage() {
       <div className="flex flex-col lg:flex-row gap-6 mb-12">
         <div className="relative flex-grow">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black" size={24} />
-          <input 
+          <input
             type="text"
             placeholder="Search items, locations, or categories..."
             value={searchQuery}
@@ -139,7 +141,7 @@ export default function MarketplacePage() {
 
 function MarketplaceCard({ item }: { item: MarketplaceItem }) {
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ y: -10 }}
       className={`border-4 border-black ${item.color} shadow-[12px_12px_0px_0px_#000] flex flex-col h-full`}
     >
@@ -154,7 +156,7 @@ function MarketplaceCard({ item }: { item: MarketplaceItem }) {
         </div>
 
         <h3 className="text-3xl font-black mb-2 uppercase leading-none">{item.title}</h3>
-        
+
         <div className="flex items-center gap-2 mb-6">
           <div className="w-8 h-8 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-xs">
             {item.requester[0]}

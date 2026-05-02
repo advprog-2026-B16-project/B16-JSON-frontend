@@ -1,12 +1,13 @@
 'use client';
 
-import Link from 'next/link'; import { ClipboardList, ShoppingCart, User, MapPin } from 'lucide-react';
+import { ClipboardList, ShoppingCart, User, MapPin } from 'lucide-react';
+import Link from 'next/link';
 
 export default function OrdersPage() {
   const mockOrders = [
     { id: 1024, buyer: 'Budi Santoso', buyerUsername: 'budi_s', item: 'iPhone 15 Pro Max', date: 'Feb 25, 2026', status: 'Pending Approval', statusColor: 'bg-yellow-400' },
     { id: 1025, buyer: 'Siti Aminah', buyerUsername: 'siti_a', item: 'SK-II Facial Treatment', date: 'Feb 26, 2026', status: 'In Transit', statusColor: 'bg-cyan-400' },
-    { id: 1026, buyer: 'Andi Rianto', buyerUsername: 'andi_r', item: 'Matcha Powder (Uji)', date: 'Feb 27, 2026', status: 'Delivered', statusColor: 'bg-green-400' },
+    { id: 1026, buyer: 'Andi Rianto', buyerUsername: 'andi_r', item: 'Matcha Powder (Uji)', date: 'Feb 27, 2026', status: 'Delivered', statusColor: 'bg-green-400' },   
   ];
 
   return (
@@ -35,7 +36,7 @@ export default function OrdersPage() {
 
       <div className="space-y-6">
         <h2 className="text-3xl font-black uppercase underline decoration-purple-400 decoration-8 underline-offset-8">Recent Orders</h2>
-        
+
         {mockOrders.map((order) => (
           <div key={order.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-6 w-full md:w-auto">
@@ -52,7 +53,7 @@ export default function OrdersPage() {
             </div>
 
             <div className="flex flex-col md:items-end w-full md:w-auto gap-4">
-              <span className={`px-4 py-1 border-2 border-black font-black uppercase text-sm ${order.statusColor} shadow-[4px_4px_0px_0px_#000]`}>
+              <span className={`px-4 py-1 border-2 border-black font-black uppercase text-sm ${order.statusColor} shadow-[4px_4px_0px_0px_#000]`}>       
                 {order.status}
               </span>
               <button className="bg-black text-white px-6 py-2 font-black uppercase hover:bg-main hover:text-black transition-colors border-2 border-black shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
