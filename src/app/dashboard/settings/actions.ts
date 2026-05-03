@@ -69,6 +69,8 @@ export async function getProfile(): Promise<ActionResponse<ProfileResponseDTO>> 
 }
 
 export async function getPublicProfile(username: string): Promise<ActionResponse<ProfileResponseDTO>> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value;
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
   try {
