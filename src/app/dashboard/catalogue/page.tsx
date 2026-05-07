@@ -10,7 +10,7 @@ export default function CataloguePage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-6 py-12 text-black">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
         <div>
           <h1 className="text-6xl font-black uppercase mb-4 text-yellow-600">Your Catalogue</h1>
@@ -18,24 +18,24 @@ export default function CataloguePage() {
             Manage the items you are offering to jastip for others.
           </p>
         </div>
-        <button className="neo-button flex items-center gap-2 text-xl bg-yellow-400">
+        <button className="neo-button flex items-center gap-2 text-xl bg-yellow-400 text-black">
           <Plus size={24} strokeWidth={3} /> Add New Item
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
         <div className="p-6 border-4 border-black bg-cyan-100 shadow-[8px_8px_0px_0px_#000]">
-          <Package className="mb-4" size={32} />
+          <Package className="mb-4 text-black" size={32} />
           <h3 className="text-xl font-black uppercase">Total Items</h3>
           <p className="text-4xl font-black">12</p>
         </div>
         <div className="p-6 border-4 border-black bg-pink-100 shadow-[8px_8px_0px_0px_#000]">
-          <ShoppingCart className="mb-4" size={32} />
+          <ShoppingCart className="mb-4 text-black" size={32} />
           <h3 className="text-xl font-black uppercase">Total Sales</h3>
           <p className="text-4xl font-black">60</p>
         </div>
         <div className="p-6 border-4 border-black bg-green-100 shadow-[8px_8px_0px_0px_#000]">
-          <Tag className="mb-4" size={32} />
+          <Tag className="mb-4 text-black" size={32} />
           <h3 className="text-xl font-black uppercase">Active Offers</h3>
           <p className="text-4xl font-black">8</p>
         </div>
@@ -59,7 +59,7 @@ export default function CataloguePage() {
                 <td className="p-4 font-bold">{item.price}</td>
                 <td className="p-4 font-bold">{item.sales}</td>
                 <td className="p-4">
-                  <span className={`px-3 py-1 border-2 border-black font-black uppercase text-xs ${item.status === 'Active' ? 'bg-green-400' : 'bg-gray-300'} shadow-[2px_2px_0px_0px_#000]`}>
+                  <span className={`px-3 py-1 border-2 border-black font-black uppercase text-xs ${item.status === 'Active' ? 'bg-green-400' : 'bg-gray-300'} shadow-[2px_2px_0px_0px_#000] text-black`}>
                     {item.status}
                   </span>
                 </td>
