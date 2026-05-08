@@ -1,8 +1,6 @@
 import { Transaction, WalletActionRequest } from '@/types/wallet';
 import { apiFetch } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
 export const WalletService = {
   getWalletBalance: async (userId: string): Promise<number> => {
     const res = await apiFetch(`/wallet/${userId}`);

@@ -8,7 +8,7 @@ jest.mock('../orderApi', () => ({
 }));
 
 jest.mock('lucide-react', () => {
-  const IconMock = (props: any) => <svg {...props} />;
+  const IconMock = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} />;
 
   return {
     AlertCircle: IconMock,
