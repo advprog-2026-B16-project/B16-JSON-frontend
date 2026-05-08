@@ -17,7 +17,6 @@ export default function WalletClient({ initialUserId }: { initialUserId: string 
   
   const {
     userId,
-    setUserId,
     balance,
     transactions,
     isLoading,
