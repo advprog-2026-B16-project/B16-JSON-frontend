@@ -64,6 +64,38 @@ export default function ProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
+  // SEARCH BY PRODUCT NAME
+  const handleSearchName = async () => {
+
+    if (!searchName) {
+      fetchProducts();
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/products/search?name=${searchName}`
+      );
+
+      if (!res.ok) {
+        throw new Error();
+      }
+
+      const data = await res.json();
+
+      setProducts(data);
+
+    } catch {
+      setError('Failed to search products');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // HANDLE FORM CHANGE
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
