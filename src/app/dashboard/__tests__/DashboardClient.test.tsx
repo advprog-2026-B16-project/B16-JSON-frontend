@@ -18,7 +18,6 @@ describe('DashboardClient', () => {
       push: mockPush,
       refresh: mockRefresh,
     });
-    // @ts-expect-error - usePathname is mocked
     (usePathname as jest.Mock).mockReturnValue('/dashboard/home');
     global.fetch = jest.fn();
   });

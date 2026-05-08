@@ -522,7 +522,6 @@ export default function OrderPage() {
     setToken(t);
     setRole(r);
     loadOrders(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadOrders(t: string) {
