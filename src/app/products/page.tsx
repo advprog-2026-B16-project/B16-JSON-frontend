@@ -3,13 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+
 import {
   ArrowLeft,
   Package,
+  Search,
   RefreshCw,
-  Plus,
-  Pencil,
-  Trash2
+  User,
+  Globe,
+  Boxes,
+  Calendar
 } from 'lucide-react';
 
 interface Product {
@@ -28,36 +31,40 @@ export default function ProductsPage() {
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [form, setForm] = useState<Product>({
-    name: '',
-    description: '',
-    price: 0,
-    stock: 0,
-    originCountry: '',
-    purchaseDate: '',
-    jastiperId: 'user123'
-  });
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchName, setSearchName] = useState('');
+  const [searchJastiper, setSearchJastiper] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
-  // FETCH PRODUCTS
+  const [error, setError] = useState('');
+
+  // FETCH ALL PRODUCTS
   const fetchProducts = useCallback(async () => {
+
     setIsLoading(true);
     setError('');
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`);
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/products`
+      );
+
+      if (!res.ok) {
+        throw new Error();
+      }
+
       const data = await res.json();
+
       setProducts(data);
+
     } catch {
       setError('Failed to fetch products');
     } finally {
       setIsLoading(false);
     }
+
   }, []);
 
   useEffect(() => {
@@ -96,103 +103,90 @@ export default function ProductsPage() {
     }
   };
 
-  // HANDLE FORM CHANGE
-  const handleChange = (e: any) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  // SEARCH BY JASTIPER
+  const handleSearchJastiper = async () => {
 
-  // CREATE / UPDATE
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
+    if (!searchJastiper) {
+      fetchProducts();
+      return;
+    }
+
+    setIsLoading(true);
     setError('');
-    setSuccess('');
 
     try {
-      const url = editingId
-        ? `${process.env.NEXT_PUBLIC_API_URL}/products/${editingId}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/products`;
 
-      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/products/jastiper/${searchJastiper}`
+      );
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          price: Number(form.price),
-          stock: Number(form.stock)
-        })
-      });
+      if (!res.ok) {
+        throw new Error();
+      }
 
-      if (!res.ok) throw new Error();
+      const data = await res.json();
 
-      setSuccess(editingId ? 'Product updated!' : 'Product created!');
-
-      setForm({
-        name: '',
-        description: '',
-        price: 0,
-        stock: 0,
-        originCountry: '',
-        purchaseDate: '',
-        jastiperId: 'user123'
-      });
-
-      setEditingId(null);
-      fetchProducts();
+      setProducts(data);
 
     } catch {
-      setError('Failed to save product');
+      setError('Failed to search jastiper products');
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  // DELETE
-  const handleDelete = async (id: string) => {
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
-        method: 'DELETE'
-      });
-      fetchProducts();
-    } catch {
-      setError('Delete failed');
-    }
-  };
-
-  // EDIT
-  const handleEdit = (p: Product) => {
-    setForm(p);
-    setEditingId(p.id!);
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-6 py-12">
 
-      {/* Back */}
-      <button
+      {/* BACK BUTTON */}
+      <motion.button
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
         onClick={() => router.back()}
-        className="absolute top-8 left-8 flex gap-2 font-bold"
+        className="absolute top-8 left-8 flex items-center gap-2 font-bold hover:underline"
       >
-        <ArrowLeft /> Back
-      </button>
+        <ArrowLeft size={20}/>
+        Back
+      </motion.button>
 
-      <div className="w-full max-w-5xl">
+      <motion.div
+        initial={{ y:20, opacity:0 }}
+        animate={{ y:0, opacity:1 }}
+        className="w-full max-w-6xl"
+      >
 
         <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000]">
 
           {/* HEADER */}
-          <div className="flex justify-between mb-6 border-b-4 pb-4">
-            <h1 className="text-4xl font-black flex gap-3 items-center">
-              <Package /> Products
-            </h1>
+          <div className="flex justify-between items-center border-b-4 border-black pb-6 mb-6">
 
-            <button onClick={fetchProducts}>
-              <RefreshCw />
+            <div className="flex items-center gap-4">
+
+              <div className="bg-yellow-300 border-4 border-black p-3 shadow-[4px_4px_0px_0px_#000]">
+                <Package size={36}/>
+              </div>
+
+              <h1 className="text-4xl font-black uppercase">
+                Product Catalog
+              </h1>
+
+            </div>
+
+            <button
+              onClick={fetchProducts}
+              className="bg-purple-300 border-4 border-black p-3 shadow-[4px_4px_0px_0px_#000]"
+            >
+              <RefreshCw size={24}/>
             </button>
+
           </div>
 
-          {/* ALERT */}
-          {error && <div className="bg-red-400 p-3 mb-4">{error}</div>}
-          {success && <div className="bg-green-400 p-3 mb-4">{success}</div>}
+          {/* ERROR */}
+          {error && (
+            <div className="bg-red-400 border-4 border-black p-4 mb-6 font-bold">
+              {error}
+            </div>
+          )}
 
           {/* SEARCH SECTION */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -226,52 +220,105 @@ export default function ProductsPage() {
 
             </div>
 
+            {/* SEARCH JASTIPER */}
+            <div className="border-4 border-black p-4 bg-pink-100 shadow-[6px_6px_0px_0px_#000]">
 
-          {/* FORM */}
-          <form onSubmit={handleSubmit} className="grid gap-3 mb-8">
+              <h2 className="text-2xl font-black mb-4 flex gap-2 items-center">
+                <User />
+                Search Jastiper
+              </h2>
 
-            <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required className="border-4 p-2"/>
-            <input name="description" placeholder="Description" value={form.description} onChange={handleChange} required className="border-4 p-2"/>
-            <input name="price" type="number" placeholder="Price" value={form.price} onChange={handleChange} required className="border-4 p-2"/>
-            <input name="stock" type="number" placeholder="Stock" value={form.stock} onChange={handleChange} required className="border-4 p-2"/>
-            <input name="originCountry" placeholder="Country" value={form.originCountry} onChange={handleChange} required className="border-4 p-2"/>
-            <input name="purchaseDate" type="date" value={form.purchaseDate} onChange={handleChange} required className="border-4 p-2"/>
+              <div className="flex gap-2">
 
-            <button className="bg-green-400 border-4 p-2 font-bold">
-              {editingId ? 'Update Product' : 'Add Product'}
-            </button>
-          </form>
+                <input
+                  type="text"
+                  placeholder="Enter jastiper id..."
+                  value={searchJastiper}
+                  onChange={(e) => setSearchJastiper(e.target.value)}
+                  className="flex-1 border-4 border-black p-2 font-bold"
+                />
 
-          {/* LIST */}
-          <div className="grid md:grid-cols-2 gap-6">
-
-            {products.map((p) => (
-              <div key={p.id} className="border-4 p-4 shadow-[6px_6px_0px_0px_#000]">
-
-                <h2 className="text-xl font-black">{p.name}</h2>
-                <p>{p.description}</p>
-                <p>Rp {p.price}</p>
-                <p>Stock: {p.stock}</p>
-                <p>{p.originCountry}</p>
-                <p>{p.purchaseDate}</p>
-
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => handleEdit(p)} className="bg-yellow-300 border-2 p-1">
-                    <Pencil size={16}/>
-                  </button>
-                  <button onClick={() => handleDelete(p.id!)} className="bg-red-400 border-2 p-1">
-                    <Trash2 size={16}/>
-                  </button>
-                </div>
+                <button
+                  onClick={handleSearchJastiper}
+                  className="bg-yellow-300 border-4 border-black px-4 font-black"
+                >
+                  Search
+                </button>
 
               </div>
+
+            </div>
+
+          </div>
+
+          {/* LOADING */}
+          {isLoading && (
+            <div className="text-center text-2xl font-black">
+              Loading...
+            </div>
+          )}
+
+          {/* PRODUCT LIST */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            {products.map((product) => (
+
+              <motion.div
+                key={product.id}
+                initial={{ opacity:0, y:10 }}
+                animate={{ opacity:1, y:0 }}
+                className="border-4 border-black p-5 bg-cyan-50 shadow-[6px_6px_0px_0px_#000]"
+              >
+
+                {/* PRODUCT NAME */}
+                <h2 className="text-2xl font-black mb-2">
+                  {product.name}
+                </h2>
+
+                {/* DESCRIPTION */}
+                <p className="mb-4 font-medium">
+                  {product.description}
+                </p>
+
+                {/* PRICE */}
+                <div className="text-xl font-black mb-3">
+                  💰 Rp {product.price.toLocaleString()}
+                </div>
+
+                {/* STOCK */}
+                <div className="flex gap-2 items-center font-bold mb-2">
+                  <Boxes size={18}/>
+                  Stock: {product.stock}
+                </div>
+
+                {/* COUNTRY */}
+                <div className="flex gap-2 items-center font-bold mb-2">
+                  <Globe size={18}/>
+                  {product.originCountry}
+                </div>
+
+                {/* DATE */}
+                <div className="flex gap-2 items-center font-bold mb-2">
+                  <Calendar size={18}/>
+                  {new Date(product.purchaseDate).toLocaleDateString()}
+                </div>
+
+                {/* JASTIPER */}
+                <div className="flex gap-2 items-center font-bold">
+                  <User size={18}/>
+                  {product.jastiperId}
+                </div>
+
+              </motion.div>
+
             ))}
 
           </div>
 
         </div>
 
-      </div>
+      </motion.div>
+
     </div>
   );
 }
