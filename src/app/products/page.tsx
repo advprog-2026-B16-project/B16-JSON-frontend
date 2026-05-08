@@ -194,6 +194,39 @@ export default function ProductsPage() {
           {error && <div className="bg-red-400 p-3 mb-4">{error}</div>}
           {success && <div className="bg-green-400 p-3 mb-4">{success}</div>}
 
+          {/* SEARCH SECTION */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+
+            {/* SEARCH PRODUCT */}
+            <div className="border-4 border-black p-4 bg-cyan-100 shadow-[6px_6px_0px_0px_#000]">
+
+              <h2 className="text-2xl font-black mb-4 flex gap-2 items-center">
+                <Search />
+                Search Product
+              </h2>
+
+              <div className="flex gap-2">
+
+                <input
+                  type="text"
+                  placeholder="Search by product name..."
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  className="flex-1 border-4 border-black p-2 font-bold"
+                />
+
+                <button
+                  onClick={handleSearchName}
+                  className="bg-green-300 border-4 border-black px-4 font-black"
+                >
+                  Search
+                </button>
+
+              </div>
+
+            </div>
+
+
           {/* FORM */}
           <form onSubmit={handleSubmit} className="grid gap-3 mb-8">
 
