@@ -1,16 +1,26 @@
 import { useState, useCallback, useEffect } from 'react';
+
 import { Transaction } from '@/types/wallet';
 import { WalletService } from '@/services/wallet/wallet.service';
 
+type WalletActionType = 'topup' | 'withdraw';
+
 export const useWallet = (initialUserId: string) => {
-  const [userId, setUserId] = useState<string>(initialUserId);
+  const [userId, setUserId] = useState(initialUserId);
+
   const [balance, setBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [actionLoading, setActionLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const clearAlerts = () => {
+    setError('');
+    setSuccess('');
+  };
 
   const fetchWalletData = useCallback(async () => {
     if (!userId) {
@@ -18,18 +28,25 @@ export const useWallet = (initialUserId: string) => {
       setTransactions([]);
       return;
     }
+
     setIsLoading(true);
     setError('');
-    
+
     try {
-      const [balanceData, txData] = await Promise.all([
+      const [balanceData, transactionData] = await Promise.all([
         WalletService.getWalletBalance(userId),
-        WalletService.getTransactions(userId).catch(() => []) 
+
+        WalletService.getTransactions(userId).catch(() => [])
       ]);
+
       setBalance(balanceData);
-      setTransactions(txData);
+      setTransactions(transactionData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch wallet data');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to fetch wallet data'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -39,55 +56,78 @@ export const useWallet = (initialUserId: string) => {
     fetchWalletData();
   }, [fetchWalletData]);
 
-  const handleAction = async (type: 'topup' | 'withdraw', amountStr: string) => {
-    if (!amountStr || isNaN(Number(amountStr)) || Number(amountStr) <= 0) {
+  const handleAction = async (
+    type: WalletActionType,
+    amount: number
+  ) => {
+    if (!amount || amount <= 0) {
       setError(`Please enter a valid ${type} amount`);
       return false;
     }
 
-    const amount = Number(amountStr);
-
-    if (type === 'withdraw' && balance !== null && amount > balance) {
+    if (
+      type === 'withdraw' &&
+      balance !== null &&
+      amount > balance
+    ) {
       setError('Insufficient funds');
       return false;
     }
 
     setActionLoading(true);
-    setError('');
-    setSuccess('');
+
+    clearAlerts();
 
     try {
       if (type === 'topup') {
-        await WalletService.topUp({ userId, amount });
+        await WalletService.topUp({
+          userId,
+          amount
+        });
       } else {
-        await WalletService.withdraw({ userId, amount });
+        await WalletService.withdraw({
+          userId,
+          amount
+        });
       }
 
-      setSuccess(`Successfully ${type === 'topup' ? 'topped up' : 'withdrew'} $${amount}`);
+      setSuccess(
+        `Successfully ${
+          type === 'topup'
+            ? 'topped up'
+            : 'withdrew'
+        } $${amount}`
+      );
+
       await fetchWalletData();
+
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : `${type} error`);
+      setError(
+        err instanceof Error
+          ? err.message
+          : `${type} failed`
+      );
+
       return false;
     } finally {
       setActionLoading(false);
     }
   };
 
-  const clearAlerts = () => {
-    setError('');
-    setSuccess('');
-  };
-
   return {
     userId,
     setUserId,
+
     balance,
     transactions,
+
     isLoading,
     actionLoading,
+
     error,
     success,
+
     fetchWalletData,
     handleAction,
     clearAlerts
