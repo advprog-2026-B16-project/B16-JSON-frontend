@@ -8,7 +8,7 @@ export interface Order {
     titipersId: string;
     jastiperId?: string | null;
     quantity: number;
-    totalAmount: number;
+    totalAmount?: number | null;
     shippingAddress: string;
     orderStatus: OrderStatus;
     createdAt: string;
