@@ -363,7 +363,7 @@ function DetailModal({ order, onClose }: { order: Order; onClose: () => void }) 
                       <p className="text-sm font-bold">
                         Produk:{' '}
                         <span className="text-yellow-500">
-                    {'★'.repeat(order.productRating)}{'☆'.repeat(5 - order.productRating)}
+                    {'★'.repeat(order.productRating ?? 0)}{'☆'.repeat(5 - (order.productRating ?? 0))}
                   </span>
                       </p>
                   )}
