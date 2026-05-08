@@ -355,7 +355,7 @@ function DetailModal({ order, onClose }: { order: Order; onClose: () => void }) 
                       <p className="text-sm font-bold">
                         Jastiper:{' '}
                         <span className="text-yellow-500">
-                    {'★'.repeat(order.jastiperRating)}{'☆'.repeat(5 - order.jastiperRating)}
+                    {'★'.repeat(order.jastiperRating ?? 0)}{'☆'.repeat(5 - (order.jastiperRating ?? 0))}
                   </span>
                       </p>
                   )}
