@@ -14,7 +14,9 @@ import {
   X,
   BookOpen,
   ClipboardList,
-  ShieldCheck
+  ShieldCheck,
+  CreditCard,
+  RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -41,6 +43,7 @@ export default function DashboardClient({
     { label: 'Home', icon: <Home size={20} />, href: '/dashboard/home' },
     { label: 'Marketplace', icon: <ShoppingBag size={20} />, href: '/dashboard/marketplace' },
     { label: 'Transactions', icon: <Repeat size={20} />, href: '/dashboard/transactions' },
+    { label: 'Wallet', icon: <CreditCard size={20} />, href: '/dashboard/wallet' },
     { label: 'Account', icon: <User size={20} />, href: '/dashboard/account' },
     { label: 'Settings', icon: <Settings size={20} />, href: '/dashboard/settings' },
   ];

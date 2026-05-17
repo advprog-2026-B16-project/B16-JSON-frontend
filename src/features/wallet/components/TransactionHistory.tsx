@@ -7,7 +7,7 @@ interface Props {
 }
 
 export function TransactionHistory({ transactions }: Props) {
-  const isTopUp = (type: string) => type === 'TOP_UP';
+  const isPositive = (type: string) => type === 'TOP_UP' || type === 'REFUND';
 
   return (
     <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] text-black h-full overflow-hidden flex flex-col">
@@ -31,7 +31,7 @@ export function TransactionHistory({ transactions }: Props) {
               <p className="font-bold">Top up your wallet to get started!</p>
             </motion.div>
           ) : (
-            [...transactions].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((tx) => (
+            [...transactions].map((tx) => (
               <motion.div
                 key={tx.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -39,14 +39,12 @@ export function TransactionHistory({ transactions }: Props) {
                 className="border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000] flex items-center justify-between hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#000] transition-all bg-gray-50"
               >
                 <div className="flex items-center gap-4">
-                  <div className={`p-2 border-2 border-black ${isTopUp(tx.type) ? 'bg-green-200' : 'bg-red-200'}`}>
-                    {isTopUp(tx.type) ? <ArrowDownRight size={20} className="text-green-700" /> : <ArrowUpRight size={20} className="text-red-700" />}
+                  <div className={`p-2 border-2 border-black ${isPositive(tx.type) ? 'bg-green-200' : 'bg-red-200'}`}>
+                    {isPositive(tx.type) ? <ArrowDownRight size={20} className="text-green-700" /> : <ArrowUpRight size={20} className="text-red-700" />}
                   </div>
                   <div>
-                    <p className="font-black text-lg">{isTopUp(tx.type) ? 'Top Up' : 'Withdrawal'}</p>
+                    <p className="font-black text-lg">{tx.type.replace('_', ' ')}</p>
                     <div className="flex items-center gap-2 text-xs font-bold font-mono text-gray-500">
-                      <span>{new Date(tx.createdAt).toLocaleDateString()}</span>
-                      <span>•</span>
                       <span className="flex items-center gap-1">
                         {tx.status === 'SUCCESS' && <CheckCircle2 size={12} className="text-green-600" />}
                         {tx.status === 'FAILED' && <XCircle size={12} className="text-red-600" />}
@@ -58,8 +56,8 @@ export function TransactionHistory({ transactions }: Props) {
                     )}
                   </div>
                 </div>
-                <div className={`text-xl font-black ${isTopUp(tx.type) ? 'text-green-600' : 'text-red-600'}`}>
-                  {isTopUp(tx.type) ? '+' : '-'}${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                <div className={`text-xl font-black ${isPositive(tx.type) ? 'text-green-600' : 'text-red-600'}`}>
+                  {isPositive(tx.type) ? '+' : '-'}${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </div>
               </motion.div>
             ))
