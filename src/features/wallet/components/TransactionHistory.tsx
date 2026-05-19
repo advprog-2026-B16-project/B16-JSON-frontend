@@ -4,10 +4,9 @@ import { Clock, ArrowDownRight, ArrowUpRight, CheckCircle2, XCircle } from 'luci
 
 interface Props {
   transactions: Transaction[];
-  isLoading?: boolean;
 }
 
-export function TransactionHistory({ transactions, isLoading }: Props) {
+export function TransactionHistory({ transactions }: Props) {
   const isPositive = (type: string) => type === 'TOP_UP' || type === 'REFUND';
 
   const formatAmount = (num: number) => {

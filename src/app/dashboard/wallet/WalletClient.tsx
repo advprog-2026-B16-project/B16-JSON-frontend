@@ -22,10 +22,8 @@ export default function WalletClient({ initialUserId }: { initialUserId: string 
     isLoading,
     actionLoading,
     error,
-    success,
     fetchWalletData,
     handleAction,
-    handleConfirmTopUp,
   } = useWallet(initialUserId);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -123,7 +121,6 @@ export default function WalletClient({ initialUserId }: { initialUserId: string 
         <div className="w-full lg:w-1/2 flex flex-col h-full">
           <TransactionHistory 
             transactions={transactions} 
-            isLoading={actionLoading || isLoading}
           />
         </div>
       </motion.div>

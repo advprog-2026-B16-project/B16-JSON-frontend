@@ -6,9 +6,7 @@ import {
   Plus,
   ArrowRight,
   TrendingUp,
-  Package,
   Wallet,
-  ShoppingBag,
   CreditCard,
   Clock
 } from 'lucide-react';
@@ -19,11 +17,10 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
   const router = useRouter();
   
   // Real data hooks!
-  const { balance, transactions: walletTx, isLoading: walletLoading } = useWallet(initialUserId);
+  const { balance, isLoading: walletLoading } = useWallet(initialUserId);
   const { payments, isLoading: paymentsLoading } = usePayments();
 
   const activePayments = payments.filter(p => p.status === 'PENDING').length;
-  const completedPayments = payments.filter(p => p.status === 'PAID').length;
 
   const totalSpent = payments
     .filter(p => p.status === 'PAID')

@@ -15,8 +15,7 @@ import {
   BookOpen,
   ClipboardList,
   ShieldCheck,
-  CreditCard,
-  RotateCcw
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 

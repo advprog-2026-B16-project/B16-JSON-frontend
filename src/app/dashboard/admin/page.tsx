@@ -23,6 +23,13 @@ interface UserData {
   status: string;
 }
 
+interface TopUpData {
+  id?: string;
+  transactionId?: string;
+  userId?: string;
+  amount?: number;
+}
+
 interface RawUpgradeRequest {
   id?: string;
   upgr_req_id?: string;
@@ -47,7 +54,7 @@ export default function AdminPortal() {
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState<UserData[]>([]);
   const [requests, setRequests] = useState<UpgradeRequestResponse[]>([]);
-  const [pendingTopUps, setPendingTopUps] = useState<any[]>([]);
+  const [pendingTopUps, setPendingTopUps] = useState<TopUpData[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<{
@@ -68,7 +75,7 @@ export default function AdminPortal() {
 
     // 1. Fetch Users
     try {
-      let usersRes = await apiFetch('/admin/users');
+      const usersRes = await apiFetch('/admin/users');
       if (usersRes.ok) {
         const userData = await usersRes.json().catch(() => null);
         console.log('[Admin] Users raw data:', userData);
@@ -96,9 +103,9 @@ export default function AdminPortal() {
 
     // 2. Fetch Upgrade Requests
     try {
-      let requestsRes = await apiFetch('/admin/upgrade-requests');
+      const requestsRes = await apiFetch('/admin/upgrade-requests');
       if (requestsRes.ok) {
-        let rawData = await requestsRes.json().catch(() => null);
+        const rawData = await requestsRes.json().catch(() => null);
         console.log('[Admin] Requests raw data:', rawData);
         
         if (rawData) {
@@ -467,10 +474,10 @@ export default function AdminPortal() {
                         <span className="font-black text-xl text-green-600">${tx.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex items-end justify-end gap-2 mt-4 md:mt-0">
-                        <button disabled={isActionLoading} onClick={() => confirmAction('REJECT TOP UP', `Are you sure you want to reject transaction ${tx.transactionId || tx.id}?`, () => handleRejectTopUp(tx.transactionId || tx.id), 'REJECT', 'bg-pink-400 hover:bg-pink-500 text-white')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 w-full md:w-auto">
+                        <button disabled={isActionLoading} onClick={() => confirmAction('REJECT TOP UP', `Are you sure you want to reject transaction ${tx.transactionId || tx.id}?`, () => handleRejectTopUp(tx.transactionId || tx.id || ''), 'REJECT', 'bg-pink-400 hover:bg-pink-500 text-white')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 w-full md:w-auto">
                           REJECT
                         </button>
-                        <button disabled={isActionLoading} onClick={() => confirmAction('CONFIRM TOP UP', `Are you sure you want to confirm transaction ${tx.transactionId || tx.id}?`, () => handleConfirmTopUp(tx.transactionId || tx.id), 'CONFIRM', 'bg-emerald-400 hover:bg-emerald-500')} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 w-full md:w-auto">
+                        <button disabled={isActionLoading} onClick={() => confirmAction('CONFIRM TOP UP', `Are you sure you want to confirm transaction ${tx.transactionId || tx.id}?`, () => handleConfirmTopUp(tx.transactionId || tx.id || ''), 'CONFIRM', 'bg-emerald-400 hover:bg-emerald-500')} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 w-full md:w-auto">
                           CONFIRM
                         </button>
                       </div>

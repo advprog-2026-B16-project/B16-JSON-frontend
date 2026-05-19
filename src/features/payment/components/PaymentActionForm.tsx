@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface Props {
@@ -9,12 +9,12 @@ interface Props {
 
 export function PaymentActionForm({ isLoading, onSubmit, initialOrderId }: Props) {
   const [orderId, setOrderId] = useState(initialOrderId || '');
+  const [prevInitial, setPrevInitial] = useState(initialOrderId);
 
-  useEffect(() => {
-    if (initialOrderId) {
-      setOrderId(initialOrderId);
-    }
-  }, [initialOrderId]);
+  if (initialOrderId !== prevInitial) {
+    setPrevInitial(initialOrderId);
+    setOrderId(initialOrderId || '');
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

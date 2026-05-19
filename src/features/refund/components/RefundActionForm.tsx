@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface Props {
@@ -9,13 +9,13 @@ interface Props {
 
 export function RefundActionForm({ isLoading, onSubmit, initialTransactionId }: Props) {
   const [transactionId, setTransactionId] = useState(initialTransactionId || '');
+  const [prevInitial, setPrevInitial] = useState(initialTransactionId);
   const [reason, setReason] = useState('');
 
-  useEffect(() => {
-    if (initialTransactionId) {
-      setTransactionId(initialTransactionId);
-    }
-  }, [initialTransactionId]);
+  if (initialTransactionId !== prevInitial) {
+    setPrevInitial(initialTransactionId);
+    setTransactionId(initialTransactionId || '');
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
