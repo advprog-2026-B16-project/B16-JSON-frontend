@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   UserCircle, 
-  Bell, 
-  Lock, 
-  Globe,
   Settings,
-  HelpCircle,
   Save,
   Loader2,
   CheckCircle,
@@ -36,10 +32,6 @@ export default function SettingsPage() {
     }
     fetchProfile();
   }, []);
-
-  const handleResetRole = () => {
-    setMessage({ type: 'error', text: 'Role reset feature disabled for security compliance.' });
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -100,20 +92,6 @@ export default function SettingsPage() {
         {/* Navigation Sidebar */}
         <div className="lg:col-span-1 space-y-4">
           <SidebarLink active icon={<UserCircle size={20} />} label="General Profile" />
-          <SidebarLink icon={<Bell size={20} />} label="Notification Rules" />
-          <SidebarLink icon={<Lock size={20} />} label="Security & Privacy" />
-          <SidebarLink icon={<Globe size={20} />} label="Region & Language" />
-          <SidebarLink icon={<HelpCircle size={20} />} label="Help & Feedback" />
-          
-          <div className="pt-4 mt-8 border-t-2 border-black border-dashed">
-            <p className="text-xs font-black uppercase text-gray-400 mb-2">Development Tools</p>
-            <button 
-              onClick={handleResetRole}
-              className="w-full flex items-center gap-4 p-4 font-black uppercase text-sm border-4 border-black bg-pink-100 shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-black"
-            >
-              Reset Account Role
-            </button>
-          </div>
         </div>
 
         {/* Content Column */}

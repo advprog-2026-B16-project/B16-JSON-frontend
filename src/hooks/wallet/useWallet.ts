@@ -115,6 +115,27 @@ export const useWallet = (initialUserId: string) => {
     }
   };
 
+  const handleConfirmTopUp = async (transactionId: string) => {
+    setActionLoading(true);
+    clearAlerts();
+
+    try {
+      await WalletService.confirmTopUp(transactionId);
+      setSuccess('Top-up confirmed successfully');
+      await fetchWalletData();
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Top-up confirmation failed'
+      );
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return {
     userId,
     setUserId,
@@ -130,6 +151,7 @@ export const useWallet = (initialUserId: string) => {
 
     fetchWalletData,
     handleAction,
+    handleConfirmTopUp,
     clearAlerts
   };
 };

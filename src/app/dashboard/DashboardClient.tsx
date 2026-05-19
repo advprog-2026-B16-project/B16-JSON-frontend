@@ -75,7 +75,7 @@ export default function DashboardClient({
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-3 font-bold text-black">
-            {navItems.map((item) => (
+            {!isAdmin && navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -86,7 +86,7 @@ export default function DashboardClient({
               </Link>
             ))}
             
-            {isJastiper && (
+            {!isAdmin && isJastiper && (
               <>
                 <div className="w-px h-8 bg-black/20 mx-1" />
                 {jastiperItems.map((item) => (
@@ -104,7 +104,6 @@ export default function DashboardClient({
 
             {isAdmin && (
               <>
-                <div className="w-px h-8 bg-black/20 mx-1" />
                 {adminItems.map((item) => (
                   <Link
                     key={item.href}
@@ -149,35 +148,39 @@ export default function DashboardClient({
             className="fixed inset-0 z-40 bg-white border-b-4 border-black pt-24 px-6 md:hidden overflow-y-auto text-black"
           >
             <div className="flex flex-col gap-4 text-xl font-black pb-12 text-black">
-              <p className="text-xs uppercase text-gray-500 mb-[-10px]">General</p>
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`flex items-center gap-3 p-4 border-4 border-black text-black ${pathname === item.href ? 'bg-main shadow-none translate-x-1 translate-y-1' : 'bg-white shadow-[4px_4px_0px_0px_#000]'}`}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              ))}
-
-              {isJastiper && (
+              {!isAdmin && (
                 <>
-                  <p className="text-xs uppercase text-yellow-600 mt-4 mb-[-10px] flex items-center gap-2">
-                    <ShieldCheck size={16} /> Jastiper Pro Menu
-                  </p>
-                  {jastiperItems.map((item) => (
+                  <p className="text-xs uppercase text-gray-500 mb-[-10px]">General</p>
+                  {navItems.map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center gap-3 p-4 border-4 border-black bg-yellow-100 text-black ${pathname === item.href ? 'bg-yellow-400 shadow-none translate-x-1 translate-y-1' : 'shadow-[4px_4px_0px_0px_#000]'}`}
+                      className={`flex items-center gap-3 p-4 border-4 border-black text-black ${pathname === item.href ? 'bg-main shadow-none translate-x-1 translate-y-1' : 'bg-white shadow-[4px_4px_0px_0px_#000]'}`}
                     >
                       {item.icon}
                       {item.label}
                     </Link>
                   ))}
+
+                  {isJastiper && (
+                    <>
+                      <p className="text-xs uppercase text-yellow-600 mt-4 mb-[-10px] flex items-center gap-2">
+                        <ShieldCheck size={16} /> Jastiper Pro Menu
+                      </p>
+                      {jastiperItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className={`flex items-center gap-3 p-4 border-4 border-black bg-yellow-100 text-black ${pathname === item.href ? 'bg-yellow-400 shadow-none translate-x-1 translate-y-1' : 'shadow-[4px_4px_0px_0px_#000]'}`}
+                        >
+                          {item.icon}
+                          {item.label}
+                        </Link>
+                      ))}
+                    </>
+                  )}
                 </>
               )}
 
