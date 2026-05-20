@@ -1,67 +1,164 @@
 'use client';
 
-import { ClipboardList, ShoppingCart, User, MapPin } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, ClipboardList, Loader2, MapPin, ShoppingCart, User } from 'lucide-react';
+import { getOrders, type Order, type OrderStatus } from './orderApi';
+
+const STATUS_STYLE: Record<OrderStatus, string> = {
+  PENDING: 'bg-yellow-400 text-black',
+  PAID: 'bg-cyan-400 text-black',
+  PURCHASED: 'bg-blue-400 text-white',
+  SHIPPED: 'bg-purple-400 text-white',
+  COMPLETED: 'bg-green-400 text-black',
+  CANCELLED: 'bg-red-500 text-white',
+};
+
+const ACTIVE_STATUSES: OrderStatus[] = ['PENDING', 'PAID', 'PURCHASED'];
 
 export default function OrdersPage() {
-  const mockOrders = [
-    { id: 1024, buyer: 'Budi Santoso', buyerUsername: 'budi_s', item: 'iPhone 15 Pro Max', date: 'Feb 25, 2026', status: 'Pending Approval', statusColor: 'bg-yellow-400' },
-    { id: 1025, buyer: 'Siti Aminah', buyerUsername: 'siti_a', item: 'SK-II Facial Treatment', date: 'Feb 26, 2026', status: 'In Transit', statusColor: 'bg-cyan-400' },
-    { id: 1026, buyer: 'Andi Rianto', buyerUsername: 'andi_r', item: 'Matcha Powder (Uji)', date: 'Feb 27, 2026', status: 'Delivered', statusColor: 'bg-green-400' },   
-  ];
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrders = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') ?? '' : '';
+        const data = await getOrders(token);
+
+        if (isMounted) {
+          setOrders(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data pesanan.');
+          setOrders([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const activeOrdersCount = useMemo(
+    () => orders.filter((order) => ACTIVE_STATUSES.includes(order.orderStatus)).length,
+    [orders],
+  );
+
+  const shippedCount = useMemo(
+    () => orders.filter((order) => order.orderStatus === 'SHIPPED').length,
+    [orders],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="animate-spin text-purple-600" size={64} aria-label="Loading orders" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <div className="flex items-center gap-4 border-4 border-black bg-red-100 p-6 shadow-[8px_8px_0px_0px_#000]">
+          <AlertCircle className="text-red-600" size={32} />
+          <div>
+            <h1 className="text-2xl font-black uppercase text-red-600">Gagal memuat order</h1>
+            <p className="font-bold text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+    <div className="mx-auto max-w-7xl px-6 py-12">
+      <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-6xl font-black uppercase mb-4 text-purple-600">Jastip Orders</h1>
-          <p className="text-xl font-bold border-l-8 border-purple-400 pl-4 bg-purple-50 py-2">
-            Track and manage your active jastip orders from buyers.
+          <p className="mb-3 inline-block border-4 border-black bg-yellow-300 px-3 py-1 text-sm font-black uppercase shadow-[4px_4px_0px_0px_#000]">
+            Modul Order
+          </p>
+          <h1 className="text-5xl font-black uppercase text-purple-600 md:text-6xl">Jastip Orders</h1>
+          <p className="mt-4 max-w-2xl border-l-8 border-purple-400 bg-purple-50 px-4 py-3 text-lg font-bold">
+            Pantau order aktif, status pengiriman, dan riwayat pesanan langsung dari backend.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-        <div className="p-8 border-4 border-black bg-white shadow-[12px_12px_0px_0px_#000]">
+      <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_#000]">
           <ShoppingCart className="mb-4 text-purple-600" size={40} />
-          <h3 className="text-2xl font-black uppercase">Active Orders</h3>
-          <p className="text-6xl font-black">2</p>
+          <h2 className="text-2xl font-black uppercase">Active Orders</h2>
+          <p className="text-6xl font-black">{activeOrdersCount}</p>
         </div>
-        <div className="p-8 border-4 border-black bg-white shadow-[12px_12px_0px_0px_#000]">
+        <div className="border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_#000]">
           <MapPin className="mb-4 text-cyan-500" size={40} />
-          <h3 className="text-2xl font-black uppercase">On the Way</h3>
-          <p className="text-6xl font-black">1</p>
+          <h2 className="text-2xl font-black uppercase">On the Way</h2>
+          <p className="text-6xl font-black">{shippedCount}</p>
         </div>
       </div>
 
       <div className="space-y-6">
-        <h2 className="text-3xl font-black uppercase underline decoration-purple-400 decoration-8 underline-offset-8">Recent Orders</h2>
+        <h2 className="text-3xl font-black uppercase underline decoration-purple-400 decoration-8 underline-offset-8">
+          Recent Orders
+        </h2>
 
-        {mockOrders.map((order) => (
-          <div key={order.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-6 w-full md:w-auto">
-              <div className="bg-purple-100 border-2 border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-                <ClipboardList size={32} className="text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black uppercase">Order #{order.id}</h3>
-                <p className="font-bold text-gray-600">{order.item}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <User size={16} /> <span className="text-sm font-bold italic">Buyer: <Link href={`/dashboard/account/public/${order.buyerUsername}`} className="underline hover:text-purple-600">{order.buyer}</Link></span>
+        {orders.length === 0 ? (
+          <p className="border-4 border-black bg-white p-6 text-xl font-bold shadow-[8px_8px_0px_0px_#000]">
+            Belum ada pesanan masuk.
+          </p>
+        ) : (
+          orders.map((order) => (
+            <article
+              key={order.orderId}
+              className="flex flex-col gap-5 border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_#000] md:flex-row md:items-start md:justify-between"
+            >
+              <div className="flex items-start gap-4">
+                <div className="border-2 border-black bg-purple-100 p-4 shadow-[4px_4px_0px_0px_#000]">
+                  <ClipboardList size={32} className="text-purple-600" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black uppercase">Order #{order.orderId}</h3>
+                  <p className="font-bold text-gray-700">Product ID: {order.productId}</p>
+                  <div className="flex items-center gap-2 font-bold text-gray-700">
+                    <User size={16} />
+                    <span>{order.titipersId}</span>
+                  </div>
+                  <p className="font-bold text-gray-700">Quantity: {order.quantity}</p>
+                  <p className="font-bold text-gray-700">Shipping: {order.shippingAddress}</p>
+                  <p className="text-sm font-bold text-gray-500">Created at: {order.createdAt}</p>
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-col md:items-end w-full md:w-auto gap-4">
-              <span className={`px-4 py-1 border-2 border-black font-black uppercase text-sm ${order.statusColor} shadow-[4px_4px_0px_0px_#000]`}>       
-                {order.status}
-              </span>
-              <button className="bg-black text-white px-6 py-2 font-black uppercase hover:bg-main hover:text-black transition-colors border-2 border-black shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-                Update Status
-              </button>
-            </div>
-          </div>
-        ))}
+              <div className="flex flex-col gap-4 md:items-end">
+                <span
+                  className={`inline-flex border-2 border-black px-4 py-1 text-sm font-black uppercase shadow-[4px_4px_0px_0px_#000] ${STATUS_STYLE[order.orderStatus]}`}
+                >
+                  {order.orderStatus}
+                </span>
+                {order.jastiperId ? (
+                  <p className="text-sm font-bold text-gray-700">Jastiper: {order.jastiperId}</p>
+                ) : (
+                  <p className="text-sm font-bold text-gray-500">Jastiper belum ditentukan</p>
+                )}
+              </div>
+            </article>
+          ))
+        )}
       </div>
     </div>
   );
