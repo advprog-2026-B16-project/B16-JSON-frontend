@@ -23,6 +23,13 @@ interface UserData {
   status: string;
 }
 
+interface TopUpData {
+  id?: string;
+  transactionId?: string;
+  userId?: string;
+  amount?: number;
+}
+
 interface RawUpgradeRequest {
   id?: string;
   upgr_req_id?: string;
@@ -47,110 +54,111 @@ export default function AdminPortal() {
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState<UserData[]>([]);
   const [requests, setRequests] = useState<UpgradeRequestResponse[]>([]);
+  const [pendingTopUps, setPendingTopUps] = useState<TopUpData[]>([]);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    confirmStyle?: string;
+  } | null>(null);
+
+  const confirmAction = (title: string, message: string, onConfirm: () => void, confirmText = 'CONFIRM', confirmStyle = 'bg-red-400 hover:bg-red-500 text-white') => {
+    setModalConfig({ title, message, onConfirm, confirmText, confirmStyle });
+    setModalOpen(true);
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
+
+    // 1. Fetch Users
     try {
-      // 1. Fetch Users
-      let usersRes = await apiFetch('/user/getUsers');
-      if (!usersRes.ok) usersRes = await apiFetch('/user/all');
-
+      const usersRes = await apiFetch('/admin/users');
       if (usersRes.ok) {
-        const userData = await usersRes.json();
-        let extractedUsers = Array.isArray(userData) ? userData : (userData.content || userData.users || userData.data || []);
-        
-        // STRICT FILTERING: Only items that look like users (have id/email and NOT upgr_req_id)
-        if (Array.isArray(extractedUsers)) {
-          extractedUsers = extractedUsers.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) => 
-            (u.id || u.email) && !u.upgr_req_id && !u.requester_user
-          );
-        }
-
-        if (extractedUsers.length === 0 && !Array.isArray(userData)) throw new Error();
-        setUsers(extractedUsers);
-      } else {
-        setUsers([
-          {"id":"7c913fcf-831d-41ca-8ff9-4864440cd398","email":"admin@gmail.com","role":"ADMIN","status":"ACTIVE","username":"admin1"},
-          {"id":"0e06c26e-bd9d-4fd8-a03c-133121a18e34","email":"test@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser"},
-          {"id":"11d3b3cb-7e54-4c0f-8ed9-3b9952514539","email":"test_final1@example.com","role":"TITIPER","status":"ACTIVE","username":"test_final_1"},
-          {"id":"49caf5a7-1cf9-486d-b50a-11a3d10d5b40","email":"test2@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser2"},
-          {"id":"9651ca59-fa71-4f8d-9f71-a02f59aaf358","email":"test_repro@example.com","role":"TITIPER","status":"ACTIVE","username":"test_repro"},
-          {"id":"c919557b-cb3b-4e7f-b70c-6c35a00ab2fd","email":"erik.wilbert@ui.ac.id","role":"TITIPER","status":"ACTIVE","username":"erik.wilbert"}
-        ]);
-      }
-
-      // 2. Fetch Upgrade Requests
-      let requestsRes = await apiFetch('/upgrade-request/get-all');
-      let rawData = await requestsRes.json().catch(() => null);
-      
-      // If first endpoint failed or returned empty list/object, try alternative
-      const isEmpty = !rawData || 
-                     (Array.isArray(rawData) && rawData.length === 0) || 
-                     (typeof rawData === 'object' && !Array.isArray(rawData) && !rawData.id && !rawData.upgr_req_id && !rawData.requests && !rawData.data && !rawData.content);
-
-      if (!requestsRes.ok || isEmpty) {
-        console.log('[Admin] Primary requests endpoint empty or failed, trying alternative...');
-        const altRes = await apiFetch('/upgrade-request/get-requests');
-        if (altRes.ok) {
-          const altData = await altRes.json().catch(() => null);
-          if (altData) {
-            requestsRes = altRes;
-            rawData = altData;
+        const userData = await usersRes.json().catch(() => null);
+        console.log('[Admin] Users raw data:', userData);
+        if (userData) {
+          let extractedUsers = Array.isArray(userData) ? userData : (userData.content || userData.users || userData.data || []);
+          
+          if (Array.isArray(extractedUsers)) {
+            extractedUsers = extractedUsers.filter((u: UserData & { upgr_req_id?: string; requester_user?: unknown }) => 
+              (u.id || u.email) && !u.upgr_req_id && !u.requester_user && u.role?.toUpperCase() !== 'ADMIN'
+            );
           }
+          console.log('[Admin] Users extracted:', extractedUsers.length);
+          setUsers(extractedUsers || []);
+        } else {
+          setUsers([]);
         }
-      }
-
-      if (requestsRes.ok && rawData) {
-        console.log('[Admin] Requests raw data:', rawData);
-        let extracted: RawUpgradeRequest[] = [];
-        if (Array.isArray(rawData)) {
-          extracted = rawData;
-        } else if (rawData && typeof rawData === 'object') {
-          extracted = rawData.requests || rawData.data || rawData.content || rawData.upgradeRequests || [];
-          if (extracted.length === 0 && (rawData.id || rawData.upgr_req_id)) extracted = [rawData];
-        }
-        
-        console.log('[Admin] Extracted requests:', extracted.length);
-
-        // NORMALIZE AND FILTER
-        const normalized = extracted
-          .filter((r: RawUpgradeRequest) => r.id || r.upgr_req_id || r.requestId || r.requesterUsername)
-          .map((r: RawUpgradeRequest) => ({
-            id: r.id || r.upgr_req_id || r.requestId || Math.random().toString(),
-            createdAt: r.createdAt || r.created_at || new Date().toISOString(),
-            requesterUserId: r.requesterUserId || (typeof r.requester_user === 'object' ? r.requester_user.id : r.requesterUserId) || 'unknown',
-            requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : (r.requester_user as string)) || 'unknown',
-            fullName: r.fullName || r.full_name || 'No Name',
-            credential: r.credential || 'No Credential',
-            status: r.status?.toUpperCase() || 'PENDING'
-          }));
-
-        console.log('[Admin] Normalized requests:', normalized.length);
-        setRequests(normalized);
       } else {
-        console.warn('[Admin] Requests fetch failed, using fallback.');
-        setRequests([
-          {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
-          {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
-        ]);
-
+        console.warn('[Admin] Users fetch returned not OK:', usersRes.status);
+        setUsers([]);
       }
-    } catch {
-      setUsers([
-        {"id":"7c913fcf-831d-41ca-8ff9-4864440cd398","email":"admin@gmail.com","role":"ADMIN","status":"ACTIVE","username":"admin1"},
-        {"id":"0e06c26e-bd9d-4fd8-a03c-133121a18e34","email":"test@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser"},
-        {"id":"11d3b3cb-7e54-4c0f-8ed9-3b9952514539","email":"test_final1@example.com","role":"TITIPER","status":"ACTIVE","username":"test_final_1"},
-        {"id":"49caf5a7-1cf9-486d-b50a-11a3d10d5b40","email":"test2@example.com","role":"TITIPER","status":"ACTIVE","username":"testuser2"},
-        {"id":"9651ca59-fa71-4f8d-9f71-a02f59aaf358","email":"test_repro@example.com","role":"TITIPER","status":"ACTIVE","username":"test_repro"},
-        {"id":"c919557b-cb3b-4e7f-b70c-6c35a00ab2fd","email":"erik.wilbert@ui.ac.id","role":"TITIPER","status":"ACTIVE","username":"erik.wilbert"}
-      ]);
-      setRequests([
-        {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
-        {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
-      ]);
-    } finally {
-      setIsLoading(false);
+    } catch (e) {
+      console.error('[Admin] Users fetch error:', e);
+      setUsers([]);
     }
+
+    // 2. Fetch Upgrade Requests
+    try {
+      const requestsRes = await apiFetch('/admin/upgrade-requests');
+      if (requestsRes.ok) {
+        const rawData = await requestsRes.json().catch(() => null);
+        console.log('[Admin] Requests raw data:', rawData);
+        
+        if (rawData) {
+          let extracted: RawUpgradeRequest[] = [];
+          if (Array.isArray(rawData)) {
+            extracted = rawData;
+          } else if (typeof rawData === 'object') {
+            extracted = rawData.requests || rawData.data || rawData.content || rawData.upgradeRequests || [];
+            if (extracted.length === 0 && (rawData.id || rawData.upgr_req_id)) extracted = [rawData];
+          }
+          
+          const normalized = extracted
+            .filter((r: RawUpgradeRequest) => r.id || r.upgr_req_id || r.requestId || r.requesterUsername)
+            .map((r: RawUpgradeRequest) => ({
+              id: r.id || r.upgr_req_id || r.requestId || Math.random().toString(),
+              createdAt: r.createdAt || r.created_at || new Date().toISOString(),
+              requesterUserId: r.requesterUserId || (typeof r.requester_user === 'object' ? r.requester_user.id : r.requesterUserId) || 'unknown',
+              requesterUsername: r.requesterUsername || (typeof r.requester_user === 'object' ? r.requester_user.username : (r.requester_user as string)) || 'unknown',
+              fullName: r.fullName || r.full_name || 'No Name',
+              credential: r.credential || 'No Credential',
+              status: r.status?.toUpperCase() || 'PENDING'
+            }));
+
+          setRequests(normalized);
+        } else {
+          setRequests([]);
+        }
+      } else {
+        console.warn('[Admin] Requests fetch returned not OK:', requestsRes.status);
+        setRequests([]);
+      }
+    } catch (e) {
+      console.error('[Admin] Requests fetch error:', e);
+      setRequests([]);
+    }
+
+    // 3. Fetch Pending Top-Ups
+    try {
+      const topupRes = await apiFetch('/admin/topups'); 
+      if (topupRes.ok) {
+        const pending = await topupRes.json().catch(() => null);
+        console.log('[Admin] Topups raw data:', pending);
+        setPendingTopUps(Array.isArray(pending) ? pending : []);
+      } else {
+        console.warn('[Admin] Topups fetch returned not OK:', topupRes.status);
+        setPendingTopUps([]);
+      }
+    } catch (e) {
+      console.error('[Admin] Topups fetch error:', e);
+      setPendingTopUps([]);
+    }
+
+    setIsLoading(false);
   };
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
@@ -170,17 +178,16 @@ export default function AdminPortal() {
     try {
       console.log(`[Admin] Attempting ${newStatus} for request ${requestId} (User: ${requestToUpdate.requesterUsername})`);
       
-      const response = await apiFetch(`/upgrade-request/change-status/${requestId}`, {
+      const endpoint = newStatus === 'ACCEPTED' 
+        ? `/admin/upgrade-requests/${requestId}/accept` 
+        : `/admin/upgrade-requests/${requestId}/reject`;
+
+      const response = await apiFetch(endpoint, {
         method: 'PATCH',
-        body: JSON.stringify({ 
-          username: requestToUpdate.requesterUsername,
-          newStatus: newStatus
-        })
       });
       
-      const data = await response.json().catch(() => ({}));
-      
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
         console.error(`[Admin] Action failed: ${response.status}`, data);
         throw new Error(data.detail || data.message || `Server returned ${response.status}`);
       }
@@ -200,16 +207,83 @@ export default function AdminPortal() {
     }
   };
 
+  const handleConfirmTopUp = async (transactionId: string) => {
+    setIsActionLoading(true);
+    setNotification(null);
+    try {
+      const response = await apiFetch(`/admin/topups/${transactionId}/confirm`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Top-up confirmation failed');
+      
+      setNotification({ message: 'Successfully confirmed top up!', type: 'success' });
+      setPendingTopUps(prev => prev.filter(tx => (tx.id || tx.transactionId) !== transactionId));
+    } catch (err) {
+      setNotification({ 
+        message: err instanceof Error ? err.message : 'Action failed.', 
+        type: 'error' 
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRejectTopUp = async (transactionId: string) => {
+    setIsActionLoading(true);
+    setNotification(null);
+    try {
+      // The backend method is in WalletTransactionController which maps to /api/wallet
+      const response = await apiFetch(`/wallet/topup/reject/${transactionId}`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('Top-up rejection failed');
+      }
+      
+      setNotification({ message: 'Successfully rejected top up!', type: 'success' });
+      setPendingTopUps(prev => prev.filter(tx => (tx.id || tx.transactionId) !== transactionId));
+    } catch (err) {
+      setNotification({ 
+        message: err instanceof Error ? err.message : 'Action failed.', 
+        type: 'error' 
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleUserAction = async (userId: string | number, action: 'unban' | 'ban' | 'demote' | 'delete') => {
+    setIsActionLoading(true);
+    setNotification(null);
+    try {
+      const endpoint = action === 'delete' 
+        ? `/admin/users/${userId}` 
+        : `/admin/users/${userId}/${action}`;
+      
+      const method = action === 'delete' ? 'DELETE' : 'PATCH';
+      
+      const response = await apiFetch(endpoint, { method });
+      if (!response.ok) throw new Error(`User action ${action} failed`);
+      
+      setNotification({ message: `Successfully performed ${action} on user!`, type: 'success' });
+      setTimeout(fetchData, 1000);
+    } catch (err) {
+      setNotification({ message: err instanceof Error ? err.message : 'Action failed.', type: 'error' });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     const tab = searchParams.get('tab');
-    if (tab && ['overview', 'users', 'requests'].includes(tab)) setActiveTab(tab);
+    if (tab && ['overview', 'users', 'requests', 'topups'].includes(tab)) setActiveTab(tab);
   }, [searchParams]);
 
   const stats = [
     { label: 'Total Users', value: users.length.toString(), icon: <Users className="text-purple-600" />, color: 'bg-purple-100' },
     { label: 'Pending Requests', value: requests.length.toString(), icon: <ClipboardList className="text-amber-600" />, color: 'bg-amber-100' },
-    { label: 'System Health', value: '100%', icon: <Activity className="text-emerald-600" />, color: 'bg-emerald-100' },
+    { label: 'Pending Top-Ups', value: pendingTopUps.length.toString(), icon: <Activity className="text-emerald-600" />, color: 'bg-emerald-100' },
   ];
 
   return (
@@ -244,6 +318,7 @@ export default function AdminPortal() {
           { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
           { id: 'users', label: 'User Registry', icon: <Users size={20} /> },
           { id: 'requests', label: `Upgrade Requests (${requests.length})`, icon: <ClipboardList size={20} /> },
+          { id: 'topups', label: `Pending Top-Ups (${pendingTopUps.length})`, icon: <Activity size={20} /> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -284,6 +359,7 @@ export default function AdminPortal() {
                       <th className="p-4 border-b-4 border-black">User Identity</th>
                       <th className="p-4 border-b-4 border-black">Role</th>
                       <th className="p-4 border-b-4 border-black">Status</th>
+                      <th className="p-4 border-b-4 border-black text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="font-bold">
@@ -300,6 +376,42 @@ export default function AdminPortal() {
                         </td>
                         <td className="p-4 uppercase text-xs font-black">
                           <span className={user.status?.toUpperCase() === 'ACTIVE' ? 'text-emerald-600' : 'text-red-500'}>{user.status || 'ACTIVE'}</span>
+                        </td>
+                        <td className="p-4 text-right flex gap-2 justify-end">
+                          {user.status?.toUpperCase() === 'BANNED' || user.status?.toUpperCase() === 'INACTIVE' ? (
+                            <button 
+                              disabled={isActionLoading || user.role === 'ADMIN'} 
+                              onClick={() => confirmAction('UNBAN USER', `Are you sure you want to unban ${user.username || user.name}?`, () => handleUserAction(user.id, 'unban'), 'UNBAN', 'bg-emerald-400 hover:bg-emerald-500')} 
+                              className="px-2 py-1 bg-emerald-300 border-2 border-black text-xs font-black hover:bg-emerald-400 disabled:opacity-50"
+                            >
+                              UNBAN
+                            </button>
+                          ) : (
+                            <button 
+                              disabled={isActionLoading || user.role === 'ADMIN'} 
+                              onClick={() => confirmAction('BAN USER', `Are you sure you want to ban ${user.username || user.name}?`, () => handleUserAction(user.id, 'ban'), 'BAN', 'bg-yellow-400 hover:bg-yellow-500')} 
+                              className="px-2 py-1 bg-yellow-300 border-2 border-black text-xs font-black hover:bg-yellow-400 disabled:opacity-50"
+                            >
+                              BAN
+                            </button>
+                          )}
+                          
+                          {user.role === 'JASTIPER' && (
+                            <button 
+                              disabled={isActionLoading} 
+                              onClick={() => confirmAction('DEMOTE JASTIPER', `Are you sure you want to demote ${user.username || user.name} to a regular USER?`, () => handleUserAction(user.id, 'demote'), 'DEMOTE', 'bg-pink-400 hover:bg-pink-500 text-white')} 
+                              className="px-2 py-1 bg-pink-300 border-2 border-black text-xs font-black hover:bg-pink-400 disabled:opacity-50"
+                            >
+                              DEMOTE
+                            </button>
+                          )}
+                          <button 
+                            disabled={isActionLoading || user.role === 'ADMIN'} 
+                            onClick={() => confirmAction('DELETE USER', `Are you sure you want to permanently delete ${user.username || user.name}? This action cannot be undone.`, () => handleUserAction(user.id, 'delete'), 'DELETE', 'bg-red-500 hover:bg-red-600 text-white')} 
+                            className="px-2 py-1 bg-red-400 border-2 border-black text-xs font-black hover:bg-red-500 text-white disabled:opacity-50"
+                          >
+                            DEL
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -343,7 +455,78 @@ export default function AdminPortal() {
                 ))}
               </motion.div>
             )}
+            {activeTab === 'topups' && (
+              <motion.div key="topups" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                {pendingTopUps.length === 0 ? (
+                  <div className="bg-white border-4 border-black p-12 text-center shadow-[8px_8px_0px_0px_#000]">
+                    <p className="text-2xl font-black uppercase italic text-gray-400">No pending top-ups</p>
+                  </div>
+                ) : pendingTopUps.map((tx) => (
+                  <div key={tx.transactionId || tx.id} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] relative">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="md:col-span-2">
+                        <p className="text-xs uppercase font-black text-gray-500 mb-1">Transaction ID</p>
+                        <span className="font-mono text-sm block">{tx.transactionId || tx.id}</span>
+                        <span className="text-sm font-bold opacity-60">User: {tx.userId}</span>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase font-black text-gray-500 mb-1">Amount</p>
+                        <span className="font-black text-xl text-green-600">${tx.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex items-end justify-end gap-2 mt-4 md:mt-0">
+                        <button disabled={isActionLoading} onClick={() => confirmAction('REJECT TOP UP', `Are you sure you want to reject transaction ${tx.transactionId || tx.id}?`, () => handleRejectTopUp(tx.transactionId || tx.id || ''), 'REJECT', 'bg-pink-400 hover:bg-pink-500 text-white')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 w-full md:w-auto">
+                          REJECT
+                        </button>
+                        <button disabled={isActionLoading} onClick={() => confirmAction('CONFIRM TOP UP', `Are you sure you want to confirm transaction ${tx.transactionId || tx.id}?`, () => handleConfirmTopUp(tx.transactionId || tx.id || ''), 'CONFIRM', 'bg-emerald-400 hover:bg-emerald-500')} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 w-full md:w-auto">
+                          CONFIRM
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {modalOpen && modalConfig && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] max-w-md w-full"
+            >
+              <h2 className="text-3xl font-black uppercase mb-4 tracking-tight">{modalConfig.title}</h2>
+              <p className="font-bold text-gray-700 mb-8">{modalConfig.message}</p>
+              
+              <div className="flex gap-4 justify-end">
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="px-6 py-2 border-4 border-black font-black uppercase hover:bg-gray-100 transition-colors shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setModalOpen(false);
+                    modalConfig.onConfirm();
+                  }}
+                  className={`px-6 py-2 border-4 border-black font-black uppercase transition-all shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none ${modalConfig.confirmStyle}`}
+                >
+                  {modalConfig.confirmText}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

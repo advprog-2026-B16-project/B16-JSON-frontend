@@ -31,6 +31,7 @@ describe('DashboardClient', () => {
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Marketplace')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Wallet')).toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
