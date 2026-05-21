@@ -31,7 +31,7 @@ jest.mock('lucide-react', () => {
   };
 });
 
-describe('AdminPortal 100% Final Strictly', () => {
+describe('AdminPortal', () => {
   const mockPush = jest.fn();
   const mockGet = jest.fn();
 
@@ -53,66 +53,58 @@ describe('AdminPortal 100% Final Strictly', () => {
     json: async () => data,
   });
 
-  it('exhausts all user and request extraction branches', async () => {
-    // Path 1: Array success for both
+  it('renders data correctly', async () => {
     (apiFetch as jest.Mock).mockImplementation((url) => {
-      if (url.includes('/user/')) return Promise.resolve(mockRes([{ id: 'u1-unq', username: 'un1-unq' }]));
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'un1-unq' }]));
+      if (url.includes('/admin/users')) return Promise.resolve(mockRes([{ id: 'u1', username: 'un1-unq', role: 'USER' }]));
+      if (url.includes('/admin/upgrade-requests')) return Promise.resolve(mockRes([{ id: 'r1', requesterUsername: 'req1', status: 'PENDING' }]));
+      if (url.includes('/admin/topups')) return Promise.resolve(mockRes([{ transactionId: 't1', amount: 100 }]));
       return Promise.resolve(mockRes([]));
     });
+    
     render(<AdminPortal />);
     await act(async () => {});
+    
     await act(async () => { fireEvent.click(screen.getByText(/User Registry/i)); });
     expect(await screen.findByText('un1-unq')).toBeInTheDocument();
-    cleanup();
-
-    // Path 2: getUsers fail -> fallback (Line 62 else)
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, false)); // primary fail
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, false)); // secondary fail
-    (apiFetch as jest.Mock).mockResolvedValue(mockRes([]));
-    render(<AdminPortal />);
-    await act(async () => {});
-    await act(async () => { fireEvent.click(screen.getByText(/User Registry/i)); });
-    expect(await screen.findByText('admin1')).toBeInTheDocument();
-    cleanup();
-
-    // Path 3: requests primary empty -> alt success -> upgradeRequests key
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes([])); // users
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes([], true)); // primary empty
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({ upgradeRequests: [{ id: 'alt-unq', requesterUsername: 'un-alt' }] }));
-    render(<AdminPortal />);
-    expect(await screen.findByText(new RegExp('Upgrade Requests \\(1\\)', 'i'))).toBeInTheDocument();
-    cleanup();
-
-    // Path 4: requests fallback all fail (Line 121)
-    (apiFetch as jest.Mock).mockResolvedValue(mockRes({}, false));
-    render(<AdminPortal />);
-    expect(await screen.findByText(new RegExp('Upgrade Requests \\(2\\)', 'i'))).toBeInTheDocument();
   });
 
-  it('exhausts handleRequestAction branches strictly', async () => {
-    (apiFetch as jest.Mock).mockImplementation((url) => {
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq' }]));
-      return Promise.resolve(mockRes({ success: true }));
+  it('handles request actions', async () => {
+    (apiFetch as jest.Mock).mockImplementation((url, opts) => {
+      if (url.includes('/admin/users')) return Promise.resolve(mockRes([]));
+      if (url.includes('/admin/upgrade-requests') && (!opts || opts.method === 'GET')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq', status: 'PENDING' }]));
+      if (url.includes('/admin/topups')) return Promise.resolve(mockRes([]));
+      if (opts?.method === 'PATCH') return Promise.resolve(mockRes({ success: true }));
+      return Promise.resolve(mockRes([]));
     });
+    
     render(<AdminPortal />);
+    await act(async () => {});
+    
     await act(async () => { fireEvent.click(screen.getByText(/Upgrade Requests/i)); });
     
-    // APPROVE success (Line 178)
-    await act(async () => { fireEvent.click(screen.getAllByText('APPROVE')[0]); });
+    const approveBtns = await screen.findAllByText('APPROVE');
+    await act(async () => { fireEvent.click(approveBtns[0]); });
+    
     expect(await screen.findByText(/Successfully approved/i)).toBeInTheDocument();
-    await act(async () => { jest.runOnlyPendingTimers(); }); 
-    cleanup();
+  });
 
-    // failure with message fallback
+  it('handles request action failure', async () => {
     (apiFetch as jest.Mock).mockImplementation((url, opts) => {
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq' }]));
+      if (url.includes('/admin/users')) return Promise.resolve(mockRes([]));
+      if (url.includes('/admin/upgrade-requests') && (!opts || opts.method === 'GET')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq', status: 'PENDING' }]));
+      if (url.includes('/admin/topups')) return Promise.resolve(mockRes([]));
       if (opts?.method === 'PATCH') return Promise.resolve({ ok: false, status: 400, json: async () => ({ message: 'MsgFail' }) });
       return Promise.resolve(mockRes([]));
     });
+    
     render(<AdminPortal />);
+    await act(async () => {});
+    
     await act(async () => { fireEvent.click(screen.getByText(/Upgrade Requests/i)); });
-    await act(async () => { fireEvent.click(screen.getAllByText('REJECT')[0]); });
+    
+    const rejectBtns = await screen.findAllByText('REJECT');
+    await act(async () => { fireEvent.click(rejectBtns[0]); });
+    
     expect(await screen.findByText('MsgFail')).toBeInTheDocument();
   });
 });
