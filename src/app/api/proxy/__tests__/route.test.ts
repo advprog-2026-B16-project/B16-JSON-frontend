@@ -37,11 +37,11 @@ describe('Proxy API Route', () => {
       text: async () => JSON.stringify({ name: 'Test User' }),
     });
 
-    const context: { params: Promise<{ path: string[] }> } = {
-      params: Promise.resolve({ path: ['user', 'profile'] }),
-    };
-    
-    const response = await GET(mockRequest, context);
+  const context: { params: Promise<{ path: string[] }> } = {
+    params: Promise.resolve({ path: ['user', 'profile'] }),
+  };
+  
+  const response = await GET(mockRequest, context);
 
     expect(global.fetch).toHaveBeenCalledWith(
       'https://api.test.com/user/profile',
