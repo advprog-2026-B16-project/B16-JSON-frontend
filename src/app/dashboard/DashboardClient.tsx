@@ -16,6 +16,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 export default function DashboardClient({
   children,
@@ -29,6 +30,7 @@ export default function DashboardClient({
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -116,7 +118,7 @@ export default function DashboardClient({
             <div className="w-px h-8 bg-black/20 mx-1" />
             
             <button 
-              onClick={handleLogout}
+              onClick={() => setIsLogoutOpen(true)}
               className="flex items-center gap-2 px-3 py-2 border-2 border-black bg-pink-300 hover:bg-pink-400 shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all text-black"
             >
               <LogOut size={20} />
@@ -200,7 +202,7 @@ export default function DashboardClient({
               )}
 
               <button 
-                onClick={handleLogout}
+                onClick={() => setIsLogoutOpen(true)}
                 className="flex items-center gap-3 p-4 border-4 border-black bg-pink-300 shadow-[4px_4px_0px_0px_#000] mt-4 text-black"
               >
                 <LogOut size={20} />
@@ -214,6 +216,18 @@ export default function DashboardClient({
       <main className="text-black">
         {children}
       </main>
+      <ConfirmModal
+        open={isLogoutOpen}
+        title="Logout?"
+        message="You will be signed out from this session."
+        confirmText="Logout"
+        confirmClassName="bg-pink-300 text-black hover:bg-pink-400"
+        onCancel={() => setIsLogoutOpen(false)}
+        onConfirm={() => {
+          setIsLogoutOpen(false);
+          void handleLogout();
+        }}
+      />
     </div>
   );
 }

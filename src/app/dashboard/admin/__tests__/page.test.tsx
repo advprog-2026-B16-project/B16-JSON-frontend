@@ -73,6 +73,8 @@ describe('AdminPortal', () => {
     render(<AdminPortal />);
     fireEvent.click(await screen.findByText(/Upgrade Requests/i));
     fireEvent.click(await screen.findByText('APPROVE'));
+    const approveButtons = await screen.findAllByText('APPROVE');
+    fireEvent.click(approveButtons[approveButtons.length - 1]);
 
     await waitFor(() => {
       expect(apiFetch).toHaveBeenCalledWith('/upgrade-request/change-status/request-1', expect.objectContaining({ method: 'PATCH' }));

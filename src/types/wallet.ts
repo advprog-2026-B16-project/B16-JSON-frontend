@@ -10,6 +10,7 @@ export type TransactionType =
   | 'TOP_UP'
   | 'WITHDRAW'
   | 'PAYMENT'
+  | 'PAYOUT'
   | 'REFUND';
 
 export type TransactionStatus =

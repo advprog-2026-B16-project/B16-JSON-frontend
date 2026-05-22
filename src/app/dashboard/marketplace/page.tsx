@@ -9,6 +9,7 @@ import { getProducts } from '@/services/products/product.service';
 import { getProfile } from '../settings/actions';
 import { createOrder } from '../orders/orderApi';
 import { formatCompactDollar, formatDollar } from '@/lib/currency';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 type SearchMode = 'product' | 'jastiper';
 
@@ -24,6 +25,7 @@ export default function MarketplacePage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductDTO | null>(null);
   const [checkoutForm, setCheckoutForm] = useState({ quantity: '1', shippingAddress: '' });
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isCheckoutConfirmOpen, setIsCheckoutConfirmOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('product');
   const [isLoading, setIsLoading] = useState(true);
@@ -131,7 +133,7 @@ export default function MarketplacePage() {
       {selectedProduct && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
           <form
-            onSubmit={async (event) => {
+            onSubmit={(event) => {
               event.preventDefault();
               if (!profile?.id) {
                 setError('Please login before checkout');
@@ -149,24 +151,7 @@ export default function MarketplacePage() {
                 return;
               }
 
-              setIsCheckingOut(true);
-              setError(null);
-
-              try {
-                const order = await createOrder({
-                  productId: selectedProduct.id,
-                  titipersId: profile.id,
-                  jastiperId: selectedProduct.jastiperId,
-                  quantity,
-                  shippingAddress: checkoutForm.shippingAddress.trim(),
-                });
-                setSelectedProduct(null);
-                router.push(`/dashboard/orders/${order.orderId}`);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'Checkout failed');
-              } finally {
-                setIsCheckingOut(false);
-              }
+              setIsCheckoutConfirmOpen(true);
             }}
             className="w-full max-w-xl border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_#000]"
           >
@@ -230,6 +215,39 @@ export default function MarketplacePage() {
           </form>
         </div>
       )}
+
+      <ConfirmModal
+        open={Boolean(selectedProduct && isCheckoutConfirmOpen)}
+        title="Place Order?"
+        message={`Create an order for ${selectedProduct?.name || 'this item'} with quantity ${checkoutForm.quantity}.`}
+        confirmText="Place Order"
+        confirmClassName="bg-black text-white hover:bg-main hover:text-black"
+        isLoading={isCheckingOut}
+        onCancel={() => setIsCheckoutConfirmOpen(false)}
+        onConfirm={async () => {
+          if (!selectedProduct || !profile?.id) return;
+          const quantity = Number(checkoutForm.quantity);
+          setIsCheckingOut(true);
+          setError(null);
+
+          try {
+            const order = await createOrder({
+              productId: selectedProduct.id,
+              titipersId: profile.id,
+              jastiperId: selectedProduct.jastiperId,
+              quantity,
+              shippingAddress: checkoutForm.shippingAddress.trim(),
+            });
+            setIsCheckoutConfirmOpen(false);
+            setSelectedProduct(null);
+            router.push(`/dashboard/orders/${order.orderId}`);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Checkout failed');
+          } finally {
+            setIsCheckingOut(false);
+          }
+        }}
+      />
     </div>
   );
 }

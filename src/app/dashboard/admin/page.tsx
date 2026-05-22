@@ -14,6 +14,7 @@ import {
 import { apiFetch } from '@/lib/api';
 import { formatDollar } from '@/lib/currency';
 import { UpgradeRequestResponse } from '@/types/api';
+import { formatShortId } from '@/lib/ids';
 
 interface UserData {
   id: number | string;
@@ -465,8 +466,8 @@ export default function AdminPortal() {
                       </div>
                     </div>
                     <div className="mt-6 pt-6 border-t-4 border-black flex justify-end gap-4">
-                      <button disabled={isActionLoading} onClick={() => handleRequestAction(request.id, 'REJECTED')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50">REJECT</button>
-                      <button disabled={isActionLoading} onClick={() => handleRequestAction(request.id, 'ACCEPTED')} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50">APPROVE</button>
+                      <button disabled={isActionLoading} onClick={() => confirmAction('REJECT REQUEST', `Reject ${request.requesterUsername}'s Jastiper upgrade request?`, () => handleRequestAction(request.id, 'REJECTED'), 'REJECT', 'bg-pink-400 hover:bg-pink-500 text-white')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50">REJECT</button>
+                      <button disabled={isActionLoading} onClick={() => confirmAction('APPROVE REQUEST', `Approve ${request.requesterUsername} as Jastiper?`, () => handleRequestAction(request.id, 'ACCEPTED'), 'APPROVE', 'bg-emerald-400 hover:bg-emerald-500 text-black')} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50">APPROVE</button>
                     </div>
                   </div>
                 ))}
@@ -483,7 +484,7 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       <div className="md:col-span-2">
                         <p className="text-xs uppercase font-black text-gray-500 mb-1">Transaction ID</p>
-                        <span className="font-mono text-sm block">{tx.transactionId || tx.id}</span>
+                        <span className="font-mono text-sm block" title={tx.transactionId || tx.id}>{formatShortId(tx.transactionId || tx.id)}</span>
                         <span className="text-sm font-bold opacity-60">User: {tx.userId}</span>
                       </div>
                       <div>

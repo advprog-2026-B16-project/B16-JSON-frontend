@@ -2,24 +2,31 @@
 
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { 
   Plus,
   ArrowRight,
   TrendingUp,
   Wallet,
   CreditCard,
-  Clock
+  Clock,
+  PackageCheck
 } from 'lucide-react';
 import { useWallet } from '@/hooks/wallet/useWallet';
 import { usePayments } from '@/hooks/payment/usePayments';
 import { PaymentResponse } from '@/types/wallet';
 import { formatCompactDollar } from '@/lib/currency';
+import { formatShortId } from '@/lib/ids';
+import { getOrderById, type Order, type OrderStatus } from '@/app/dashboard/orders/orderApi';
+import { ORDER_STATUS_DESCRIPTION, ORDER_STATUS_LABEL } from '@/lib/orderStatus';
+import { useRefunds } from '@/hooks/refund/useRefunds';
+import { getRefundStatusLabel } from '@/lib/refundStatus';
 
-function displayStatus(status: PaymentResponse['status']) {
+function displayPaymentStatus(status: PaymentResponse['status']) {
   return status === 'PENDING' ? 'UNPAID' : status;
 }
 
-function statusColor(status: PaymentResponse['status']) {
+function paymentStatusColor(status: PaymentResponse['status']) {
   if (status === 'SUCCESS') return 'bg-green-400';
   if (status === 'PENDING') return 'bg-yellow-400';
   if (status === 'FAILED') return 'bg-red-400';
@@ -27,25 +34,59 @@ function statusColor(status: PaymentResponse['status']) {
   return 'bg-gray-400';
 }
 
+function orderStatusColor(status?: OrderStatus) {
+  if (status === 'DONE') return 'bg-emerald-500 text-white';
+  if (status === 'COMPLETED') return 'bg-green-400';
+  if (status === 'SHIPPED') return 'bg-purple-400 text-white';
+  if (status === 'PURCHASED') return 'bg-blue-400 text-white';
+  if (status === 'PAID') return 'bg-cyan-300';
+  if (status === 'CANCELLED') return 'bg-red-500 text-white';
+  return 'bg-yellow-300';
+}
+
 export default function HomeClient({ initialUserId }: { initialUserId: string }) {
   const router = useRouter();
   
-  // Real data hooks!
   const { balance, isLoading: walletLoading } = useWallet(initialUserId);
   const { payments, isLoading: paymentsLoading } = usePayments();
+  const { refunds } = useRefunds();
+  const [ordersById, setOrdersById] = useState<Record<string, Order>>({});
 
   const activePayments = payments.filter(p => p.status === 'PENDING').length;
 
   const totalSpent = payments
     .filter(p => p.status === 'SUCCESS')
     .reduce((acc, curr) => acc + curr.amount, 0);
+  const activeOrders = Object.values(ordersById).filter((order) => ['PAID', 'PURCHASED', 'SHIPPED', 'COMPLETED'].includes(order.orderStatus)).length;
 
-  // Combine top 5 recent activities (Wallet Txs + Payments)
-  // Payments have expiresAt or paidAt. Wallet Txs don't have standard timestamp in our DTO yet?
-  // Let's just list Payments as recent activities for now, or just show Wallet topups.
   const recentPurchases = [...payments]
     .sort((a, b) => new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime())
     .slice(0, 5);
+  const orderIds = useMemo(
+    () => Array.from(new Set(recentPurchases.map((payment) => payment.orderId).filter(Boolean))),
+    [recentPurchases],
+  );
+
+  useEffect(() => {
+    const missingOrderIds = orderIds.filter((orderId) => !ordersById[orderId]);
+    if (missingOrderIds.length === 0) return;
+
+    let isMounted = true;
+    Promise.allSettled(missingOrderIds.map((orderId) => getOrderById(orderId))).then((results) => {
+      if (!isMounted) return;
+      setOrdersById((current) => {
+        const next = { ...current };
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') next[result.value.orderId] = result.value;
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderIds, ordersById]);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 text-black">
@@ -62,7 +103,7 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+      <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-4">
         <StatCard 
           title="Wallet Balance" 
           value={walletLoading ? '...' : formatCompactDollar(balance || 0)} 
@@ -71,14 +112,21 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
           onClick={() => router.push('/dashboard/wallet')}
         />
         <StatCard 
-          title="Pending Payments" 
+          title="Unpaid Payments"
           value={paymentsLoading ? '...' : activePayments.toString()} 
           icon={<Clock />} 
           color="bg-yellow-300" 
           onClick={() => router.push('/dashboard/transactions')}
         />
+        <StatCard
+          title="Active Orders"
+          value={paymentsLoading ? '...' : activeOrders.toString()}
+          icon={<PackageCheck />}
+          color="bg-purple-300"
+          onClick={() => router.push('/dashboard/transactions')}
+        />
         <StatCard 
-          title="Total Spent" 
+          title="Total Transactions"
           value={paymentsLoading ? '...' : formatCompactDollar(totalSpent)} 
           icon={<TrendingUp />} 
           color="bg-cyan-300" 
@@ -106,7 +154,7 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
             <thead>
               <tr className="bg-black text-white">
                 <th className="p-4 font-black uppercase">Order ID</th>
-                <th className="p-4 font-black uppercase">Status</th>
+                <th className="p-4 font-black uppercase">Progress</th>
                 <th className="p-4 font-black uppercase">Amount</th>
                 <th className="p-4 font-black uppercase">Action</th>
               </tr>
@@ -121,16 +169,41 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
                   <td colSpan={4} className="p-8 text-center font-bold italic text-gray-500">No recent purchases found. Go make one!</td>
                 </tr>
               ) : (
-                recentPurchases.map((payment) => (
-                  <TableRow 
-                    key={payment.id}
-                    item={`Order: ${payment.orderId}`} 
-                    status={displayStatus(payment.status)} 
-                    price={formatCompactDollar(payment.amount)} 
-                    statusColor={statusColor(payment.status)} 
-                    onAction={() => router.push('/dashboard/transactions')}
-                  />
-                ))
+                recentPurchases.map((payment) => {
+                  const order = ordersById[payment.orderId];
+                  const refund = refunds.find((item) => item.originalTransactionId === payment.transactionId);
+                  const isRefunded = refund?.status === 'SUCCESS';
+                  const status = isRefunded
+                    ? getRefundStatusLabel(refund.status)
+                    : payment.status === 'SUCCESS' && order
+                      ? ORDER_STATUS_LABEL[order.orderStatus]
+                      : displayPaymentStatus(payment.status);
+                  const statusColor = isRefunded
+                    ? 'bg-green-500 text-white'
+                    : payment.status === 'SUCCESS' && order
+                      ? orderStatusColor(order.orderStatus)
+                      : paymentStatusColor(payment.status);
+                  const description = isRefunded
+                    ? 'Refund returned to wallet'
+                    : order
+                      ? ORDER_STATUS_DESCRIPTION[order.orderStatus]
+                      : payment.status === 'PENDING'
+                        ? 'Waiting for payment'
+                        : displayPaymentStatus(payment.status);
+
+                  return (
+                    <TableRow
+                      key={payment.id}
+                      item={`Order: ${formatShortId(payment.orderId)}`}
+                      title={`Order: ${payment.orderId}`}
+                      status={status}
+                      description={description}
+                      price={formatCompactDollar(payment.amount)}
+                      statusColor={statusColor}
+                      onAction={() => router.push('/dashboard/transactions')}
+                    />
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -159,16 +232,17 @@ function StatCard({ title, value, icon, color, onClick }: { title: string, value
   );
 }
 
-function TableRow({ item, status, price, statusColor, onAction }: { item: string, status: string, price: string, statusColor: string, onAction: () => void }) {
+function TableRow({ item, title, status, description, price, statusColor, onAction }: { item: string, title?: string, status: string, description: string, price: string, statusColor: string, onAction: () => void }) {
   return (
     <tr className="hover:bg-gray-50 transition-colors">
       <td className="max-w-[220px] p-4 font-bold font-mono">
-        <span className="block truncate" title={item}>{item}</span>
+        <span className="block truncate" title={title || item}>{item}</span>
       </td>
       <td className="p-4">
         <span className={`px-3 py-1 border-2 border-black font-black uppercase text-xs ${statusColor} shadow-[2px_2px_0px_0px_#000]`}>
           {status}
         </span>
+        <p className="mt-2 max-w-[320px] truncate text-xs font-bold text-gray-500" title={description}>{description}</p>
       </td>
       <td className="max-w-[160px] p-4 font-black">
         <span className="block truncate" title={price}>{price}</span>

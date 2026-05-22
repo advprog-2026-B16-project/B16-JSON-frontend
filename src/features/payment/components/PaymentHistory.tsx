@@ -2,6 +2,7 @@ import { PaymentResponse } from '@/types/wallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, CreditCard, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { formatDollar } from '@/lib/currency';
+import { formatShortId } from '@/lib/ids';
 
 interface Props {
   payments: PaymentResponse[];
@@ -71,7 +72,7 @@ export function PaymentHistory({ payments, onPay, onCancel, isLoading }: Props) 
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-black text-lg uppercase">Order {payment.orderId.slice(0, 8)}</p>
+                      <p className="font-black text-lg uppercase" title={payment.orderId}>Order {formatShortId(payment.orderId)}</p>
                       <div className="flex flex-wrap items-center gap-2 text-xs font-bold font-mono text-gray-500">
                         <span>Ref: {payment.referenceCode}</span>
                         <span>|</span>

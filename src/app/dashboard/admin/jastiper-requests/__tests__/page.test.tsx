@@ -54,6 +54,7 @@ describe('JastiperRequestsPage', () => {
     render(<JastiperRequestsPage />);
 
     fireEvent.click(await screen.findByText('APPROVE'));
+    fireEvent.click(await screen.findByText('Approve'));
     expect(await screen.findByText(/Successfully approved/i)).toBeInTheDocument();
   });
 });

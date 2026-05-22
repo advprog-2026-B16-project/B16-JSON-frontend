@@ -57,8 +57,8 @@ describe('Orders Page', () => {
     render(<Page />);
 
     expect(await screen.findByRole('heading', { name: /Jastiper Dashboard/i })).toBeInTheDocument();
-    expect(screen.getByText(/Order #order-00/i)).toBeInTheDocument();
-    expect(screen.getByText(/Product ID: prod-abc-123/i)).toBeInTheDocument();
+    expect(screen.getByText(/Order #order/i)).toBeInTheDocument();
+    expect(screen.getByText(/Product: prod-/i)).toBeInTheDocument();
     expect(screen.getByText(/Jl\. Margonda Raya No\. 100, Depok/i)).toBeInTheDocument();
 
     await waitFor(() => {
@@ -85,6 +85,7 @@ describe('Orders Page', () => {
     render(<Page />);
 
     fireEvent.click(await screen.findByText(/Mark Purchased/i));
+    fireEvent.click(await screen.findByText('Update'));
 
     await waitFor(() => {
       expect(updateOrderStatus).toHaveBeenCalledWith('order-001', 'PURCHASED');

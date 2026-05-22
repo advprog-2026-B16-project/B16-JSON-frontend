@@ -7,6 +7,8 @@ import { PaymentService } from '@/services/payment/payment.service';
 import { PaymentResponse } from '@/types/wallet';
 import { getOrderById, updateOrderStatus, type Order } from '../../orders/orderApi';
 import { formatCompactDollar, formatDollar } from '@/lib/currency';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { formatShortId } from '@/lib/ids';
 
 type PaymentMethod = 'wallet' | 'external';
 
@@ -20,6 +22,7 @@ export default function PaymentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [confirmAction, setConfirmAction] = useState<'pay' | 'cancel' | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -146,11 +149,15 @@ export default function PaymentDetailPage() {
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <Detail label="Amount" value={formatDollar(payment.amount)} highlight />
-              <Detail label="Order ID" value={payment.orderId} />
-              <Detail label="Payment ID" value={payment.id} />
-              <Detail label="Transaction ID" value={payment.transactionId || 'N/A'} />
-              <Detail label="Expires" value={payment.expiresAt ? new Date(payment.expiresAt).toLocaleString() : 'N/A'} />
-              <Detail label="Time Left" value={formatDuration(remainingMs)} />
+              <Detail label="Order ID" value={formatShortId(payment.orderId)} title={payment.orderId} />
+              <Detail label="Payment ID" value={formatShortId(payment.id)} title={payment.id} />
+              <Detail label="Transaction ID" value={formatShortId(payment.transactionId)} title={payment.transactionId || 'N/A'} />
+              {payment.status === 'PENDING' && (
+                <>
+                  <Detail label="Expires" value={payment.expiresAt ? new Date(payment.expiresAt).toLocaleString() : 'N/A'} />
+                  <Detail label="Time Left" value={formatDuration(remainingMs)} />
+                </>
+              )}
               <Detail label="Paid At" value={payment.paidAt ? new Date(payment.paidAt).toLocaleString() : 'N/A'} />
             </div>
           </section>
@@ -188,7 +195,7 @@ export default function PaymentDetailPage() {
                 </div>
                 <button
                   disabled={isPaying || method === 'external' || !canPay}
-                  onClick={handleWalletPayment}
+                  onClick={() => setConfirmAction('pay')}
                   className="flex w-full items-center justify-center gap-2 border-4 border-black bg-black px-5 py-4 font-black uppercase text-white shadow-[4px_4px_0px_0px_#000] hover:bg-cyan-300 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPaying ? <Loader2 className="animate-spin" /> : <CreditCard />}
@@ -196,7 +203,7 @@ export default function PaymentDetailPage() {
                 </button>
                 <button
                   disabled={isPaying}
-                  onClick={handleCancel}
+                  onClick={() => setConfirmAction('cancel')}
                   className="flex w-full items-center justify-center gap-2 border-4 border-black bg-white px-5 py-3 font-black uppercase shadow-[4px_4px_0px_0px_#000] hover:bg-red-300 disabled:opacity-50"
                 >
                   <XCircle size={18} /> Cancel Payment
@@ -210,6 +217,32 @@ export default function PaymentDetailPage() {
           </aside>
         </div>
       )}
+      <ConfirmModal
+        open={confirmAction === 'pay'}
+        title="Pay With Wallet?"
+        message={`Pay ${payment ? formatDollar(payment.amount) : 'this payment'} from your JSON wallet.`}
+        confirmText="Pay Now"
+        confirmClassName="bg-cyan-300 text-black hover:bg-cyan-400"
+        isLoading={isPaying}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          await handleWalletPayment();
+          setConfirmAction(null);
+        }}
+      />
+      <ConfirmModal
+        open={confirmAction === 'cancel'}
+        title="Cancel Payment?"
+        message="This payment will be cancelled and cannot be paid afterwards."
+        confirmText="Cancel Payment"
+        confirmClassName="bg-red-400 text-white hover:bg-red-500"
+        isLoading={isPaying}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          await handleCancel();
+          setConfirmAction(null);
+        }}
+      />
     </div>
   );
 }
@@ -246,11 +279,11 @@ function MethodButton({ active, icon, title, description, onClick }: { active: b
   );
 }
 
-function Detail({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+function Detail({ label, value, title, highlight = false }: { label: string; value: string; title?: string; highlight?: boolean }) {
   return (
     <div className="min-w-0 border-2 border-black bg-gray-50 p-4">
       <p className="mb-1 text-xs font-black uppercase text-gray-500">{label}</p>
-      <p className={`truncate font-black ${highlight ? 'text-2xl text-green-600' : 'font-mono text-sm'}`} title={value}>
+      <p className={`truncate font-black ${highlight ? 'text-2xl text-green-600' : 'font-mono text-sm'}`} title={title || value}>
         {value}
       </p>
     </div>

@@ -100,6 +100,8 @@ describe('DashboardClient', () => {
     
     const logoutBtn = screen.getByRole('button', { name: /Logout/i });
     fireEvent.click(logoutBtn);
+    const logoutButtons = screen.getAllByText('Logout');
+    fireEvent.click(logoutButtons[logoutButtons.length - 1]);
 
     expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
     

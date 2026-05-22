@@ -7,6 +7,7 @@ import { ProductDTO, ProductRequest, ProfileResponseDTO } from '@/types/api';
 import { createProduct, deleteProduct, getProducts, updateProduct } from '@/services/products/product.service';
 import { getProfile } from '../settings/actions';
 import { formatDollar } from '@/lib/currency';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const EMPTY_FORM = {
   name: '',
@@ -37,6 +38,7 @@ export default function CataloguePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProductDTO | null>(null);
 
   useEffect(() => {
     async function loadCatalogue() {
@@ -288,7 +290,7 @@ export default function CataloguePage() {
                       <button onClick={() => openEditForm(item)} className="bg-black text-white px-4 py-2 font-black uppercase text-xs hover:bg-yellow-400 hover:text-black transition-colors border-2 border-black shadow-[2px_2px_0px_0px_#000]">
                         <Pencil size={16} />
                       </button>
-                      <button onClick={() => handleDelete(item.id)} className="bg-red-300 text-black px-4 py-2 font-black uppercase text-xs hover:bg-red-400 transition-colors border-2 border-black shadow-[2px_2px_0px_0px_#000]">
+                      <button onClick={() => setDeleteTarget(item)} className="bg-red-300 text-black px-4 py-2 font-black uppercase text-xs hover:bg-red-400 transition-colors border-2 border-black shadow-[2px_2px_0px_0px_#000]">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -299,6 +301,22 @@ export default function CataloguePage() {
           </table>
         )}
       </div>
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        title="Delete Product?"
+        message={`Remove ${deleteTarget?.name || 'this product'} from your catalogue. This cannot be undone.`}
+        confirmText="Delete"
+        confirmClassName="bg-red-400 text-white hover:bg-red-500"
+        isLoading={isSaving}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          setIsSaving(true);
+          await handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+          setIsSaving(false);
+        }}
+      />
     </div>
   );
 }

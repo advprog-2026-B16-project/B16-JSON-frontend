@@ -1,6 +1,6 @@
 import { apiFetch } from '@/lib/api';
 
-export type OrderStatus = 'PENDING' | 'PAID' | 'PURCHASED' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
+export type OrderStatus = 'PENDING' | 'PAID' | 'PURCHASED' | 'SHIPPED' | 'COMPLETED' | 'DONE' | 'CANCELLED';
 
 export interface Order {
   orderId: string;
@@ -145,6 +145,14 @@ export async function markJastiperOrderCompleted(orderId: string): Promise<Order
   });
 
   return expectOk<Order>(response, 'Failed to mark order as completed');
+}
+
+export async function markTitiperOrderDone(orderId: string): Promise<Order> {
+  const response = await apiFetch(`/titiper/orders/${orderId}/done`, {
+    method: 'PATCH',
+  });
+
+  return expectOk<Order>(response, 'Failed to confirm order as done');
 }
 
 export function getOrderTotalAmount(order: Pick<Order, 'totalAmount' | 'totalPrice' | 'amount'>) {

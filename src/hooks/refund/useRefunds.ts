@@ -4,7 +4,7 @@ import { RefundService } from '@/services/refund/refund.service';
 
 export const useRefunds = () => {
   const [refunds, setRefunds] = useState<RefundResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,6 +47,22 @@ export const useRefunds = () => {
     }
   };
 
+  const approveRefund = async (refundId: string) => {
+    setActionLoading(true);
+    clearAlerts();
+    try {
+      await RefundService.approveJastiperRefund(refundId);
+      setSuccess('Refund approved successfully!');
+      await fetchRefunds();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve refund');
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return {
     refunds,
     isLoading,
@@ -55,6 +71,7 @@ export const useRefunds = () => {
     success,
     fetchRefunds,
     requestRefund,
+    approveRefund,
     clearAlerts,
   };
 };
