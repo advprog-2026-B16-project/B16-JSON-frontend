@@ -1,79 +1,26 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import HomePage from '../page';
+import { render, screen } from '@testing-library/react';
+import HomeClient from '../HomeClient';
 
-// Mock the global fetch function
-global.fetch = jest.fn();
-
-describe('HomePage', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+describe('HomeClient', () => {
+  it('renders the title JSON', () => {
+    render(<HomeClient isAuthenticated={false} />);
+    const elements = screen.getAllByText('JSON');
+    expect(elements.length).toBeGreaterThan(0);
+    expect(elements[0]).toBeInTheDocument();
   });
 
-  it('renders the page title', () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'Hello from backend',
-    });
-
-    render(<HomePage />);
-
-    expect(screen.getByText('Next.js Frontend')).toBeInTheDocument();
+  it('renders the main hero text', () => {
+    render(<HomeClient isAuthenticated={false} />);
+    expect(screen.getByText(/Beli Apa Saja/i)).toBeInTheDocument();
   });
 
-  it('renders "Message from Backend:" label', () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'Hello from backend',
-    });
-
-    render(<HomePage />);
-
-    expect(screen.getByText(/Message from Backend:/i)).toBeInTheDocument();
+  it('shows Login button when not authenticated', () => {
+    render(<HomeClient isAuthenticated={false} />);
+    expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument();
   });
 
-  it('displays message from backend on successful fetch', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'Hello from backend',
-    });
-
-    render(<HomePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Hello from backend')).toBeInTheDocument();
-    });
-  });
-
-  it('calls the correct API endpoint', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      text: async () => 'some data',
-    });
-
-    render(<HomePage />);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${process.env.NEXT_PUBLIC_API_URL}/user/getUsers`
-      );
-    });
-  });
-
-  it('displays error message when fetch fails', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-
-    render(<HomePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Failed to connect to backend.')).toBeInTheDocument();
-    });
-  });
-
-  it('shows empty message initially before fetch completes', () => {
-    (global.fetch as jest.Mock).mockImplementation(
-      () => new Promise(() => {}) // never resolves
-    );
-
-    render(<HomePage />);
-
-    // message state starts as empty string
-    expect(screen.getByText(/Message from Backend:/i)).toBeInTheDocument();
+  it('shows Dashboard button when authenticated', () => {
+    render(<HomeClient isAuthenticated={true} />);
+    expect(screen.getByRole('button', { name: /Dashboard/i })).toBeInTheDocument();
   });
 });
-
