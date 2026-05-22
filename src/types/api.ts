@@ -37,6 +37,7 @@ export interface UpgradeRequestResponse {
   requesterUsername: string;
   fullName: string;
   credential: string;
+  socialMediaUrl?: string;
   status: string;
 }
 
