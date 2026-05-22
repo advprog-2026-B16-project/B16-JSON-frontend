@@ -1,73 +1,120 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { AlertCircle, Send } from 'lucide-react';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 interface Props {
   isLoading: boolean;
   onSubmit: (transactionId: string, reason: string) => void;
   initialTransactionId?: string;
+  lockedTransaction?: boolean;
+  disabledReason?: string;
 }
 
-export function RefundActionForm({ isLoading, onSubmit, initialTransactionId }: Props) {
+const REASON_PRESETS = [
+  'Item was not delivered',
+  'Item does not match the order',
+  'Jastiper cancelled after payment',
+];
+
+export function RefundActionForm({ isLoading, onSubmit, initialTransactionId, lockedTransaction = false, disabledReason }: Props) {
   const [transactionId, setTransactionId] = useState(initialTransactionId || '');
-  const [prevInitial, setPrevInitial] = useState(initialTransactionId);
   const [reason, setReason] = useState('');
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  if (initialTransactionId !== prevInitial) {
-    setPrevInitial(initialTransactionId);
-    setTransactionId(initialTransactionId || '');
-  }
+  const canSubmit = transactionId.trim().length > 0 && reason.trim().length >= 10;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!transactionId || !reason) return;
-    onSubmit(transactionId, reason);
-    setTransactionId('');
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!canSubmit) return;
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirm = () => {
+    onSubmit(transactionId.trim(), reason.trim());
+    setIsConfirmOpen(false);
     setReason('');
+    if (!lockedTransaction) setTransactionId('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-purple-100 p-6 border-4 border-black shadow-[8px_8px_0px_0px_#000]">
-      <h3 className="text-xl font-black uppercase">Request Refund</h3>
-      
-      <div className="flex flex-col gap-2">
-        <label htmlFor="transactionId" className="font-bold">Transaction ID</label>
-        <div className="relative">
+    <form onSubmit={handleSubmit} className="border-4 border-black bg-white p-6 shadow-[10px_10px_0px_0px_#000]">
+      <div className="mb-5 flex items-start gap-3 border-b-4 border-black pb-4">
+        <div className="border-2 border-black bg-purple-200 p-2">
+          <AlertCircle size={24} />
+        </div>
+        <div>
+          <h2 className="text-2xl font-black uppercase">Refund Claim</h2>
+          <p className="text-sm font-bold text-gray-600">Explain the issue so admin can validate the refund request.</p>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        <label className="block">
+          <span className="mb-1 block text-xs font-black uppercase text-gray-500">Transaction ID</span>
           <input
-            id="transactionId"
             type="text"
             value={transactionId}
-            onChange={(e) => setTransactionId(e.target.value)}
-            disabled={isLoading}
-            placeholder="Enter Transaction ID"
-            className="w-full p-3 border-4 border-black font-mono font-bold focus:outline-none focus:ring-4 focus:ring-black/20 transition-all disabled:opacity-50"
+            onChange={(event) => setTransactionId(event.target.value)}
+            disabled={isLoading || lockedTransaction}
+            placeholder="Transaction ID"
+            className="w-full border-4 border-black bg-white p-4 font-mono font-bold shadow-[4px_4px_0px_0px_#000] outline-none disabled:bg-gray-100 disabled:text-gray-500"
           />
-        </div>
-      </div>
+        </label>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="reason" className="font-bold">Reason</label>
-        <div className="relative">
+        <div>
+          <span className="mb-2 block text-xs font-black uppercase text-gray-500">Quick Reasons</span>
+          <div className="grid grid-cols-1 gap-2">
+            {REASON_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setReason(preset)}
+                disabled={isLoading}
+                className="border-2 border-black bg-purple-50 px-3 py-2 text-left text-sm font-black shadow-[2px_2px_0px_0px_#000] hover:bg-purple-200 disabled:opacity-50"
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="block">
+          <span className="mb-1 block text-xs font-black uppercase text-gray-500">Detailed Reason</span>
           <textarea
-            id="reason"
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(event) => setReason(event.target.value)}
             disabled={isLoading}
-            placeholder="Why do you need a refund?"
-            rows={3}
-            className="w-full p-3 border-4 border-black font-medium focus:outline-none focus:ring-4 focus:ring-black/20 transition-all disabled:opacity-50 resize-none"
+            placeholder="Tell us what happened..."
+            rows={5}
+            className="w-full resize-none border-4 border-black bg-white p-4 font-bold shadow-[4px_4px_0px_0px_#000] outline-none disabled:opacity-50"
           />
-        </div>
-      </div>
+          <span className="mt-1 block text-xs font-bold text-gray-500">{reason.trim().length}/10 minimum characters</span>
+        </label>
 
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        type="submit"
-        disabled={isLoading || !transactionId || !reason}
-        className="w-full mt-2 bg-black text-white p-4 font-black uppercase text-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {isLoading ? 'Processing...' : 'Submit Request'}
-      </motion.button>
+        <button
+          type="submit"
+          disabled={isLoading || !canSubmit}
+          className="flex w-full items-center justify-center gap-2 border-4 border-black bg-black p-4 text-lg font-black uppercase text-white shadow-[4px_4px_0px_0px_#000] hover:bg-purple-300 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Send size={20} />
+          {isLoading ? 'Submitting...' : 'Submit Refund'}
+        </button>
+        {disabledReason && (
+          <p className="border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
+            {disabledReason}
+          </p>
+        )}
+      </div>
+      <ConfirmModal
+        open={isConfirmOpen}
+        title="Submit Refund?"
+        message="Submit this refund claim for admin review."
+        confirmText="Submit"
+        confirmClassName="bg-purple-400 text-white hover:bg-purple-500"
+        isLoading={isLoading}
+        onCancel={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirm}
+      />
     </form>
   );
 }

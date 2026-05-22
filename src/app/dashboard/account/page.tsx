@@ -1,23 +1,49 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User, 
   Mail, 
   MapPin, 
-  Calendar, 
   ShieldCheck, 
   ArrowRight,
   Star,
   Settings,
   CreditCard,
-  History
+  History,
+  Loader2,
+  AlertCircle,
+  BadgeCheck
 } from 'lucide-react';
+import { getProfile } from '../settings/actions';
+import { ProfileResponseDTO } from '@/types/api';
 
 export default function AccountPage() {
   const router = useRouter();
-  // Assume basic user state or fetch from secure API
-  const isJastiper = false; 
+  const [profile, setProfile] = useState<ProfileResponseDTO | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      const result = await getProfile();
+      if (result.success === true) {
+        setProfile(result.data);
+      } else {
+        setError(result.error || 'Failed to load profile');
+      }
+      setIsLoading(false);
+    }
+
+    loadProfile();
+  }, []);
+
+  const isJastiper = profile?.role?.toUpperCase().includes('JASTIPER') ?? false;
+  const displayName = profile?.fullName || profile?.username || 'Your Account';
+  const roleLabel = profile?.role ? profile.role.replaceAll('_', ' ') : 'Buyer';
+  const location = profile?.location || 'No location set';
+  const status = profile?.status || 'Active';
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 text-black">
@@ -25,23 +51,37 @@ export default function AccountPage() {
         {/* Profile Card */}
         <div className="w-full lg:w-1/3">
           <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] text-center">
-            <div className="w-32 h-32 bg-main border-4 border-black mx-auto mb-6 flex items-center justify-center shadow-[6px_6px_0px_0px_#000]">
-              <User size={64} strokeWidth={2.5} />
+            <div className="w-32 h-32 bg-main border-4 border-black mx-auto mb-6 flex items-center justify-center shadow-[6px_6px_0px_0px_#000] overflow-hidden">
+              {profile?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+              ) : isLoading ? (
+                <Loader2 size={56} strokeWidth={2.5} className="animate-spin" />
+              ) : (
+                <User size={64} strokeWidth={2.5} />
+              )}
             </div>
-            <h2 className="text-3xl font-black uppercase mb-2">John Doe</h2>
+            <h2 className="text-3xl font-black uppercase mb-2 break-words">{isLoading ? 'Loading...' : displayName}</h2>
             <div className="flex justify-center gap-2 mb-6">
-              <span className="px-3 py-1 bg-black text-white text-xs font-black uppercase border-2 border-black">Buyer</span>
+              <span className="px-3 py-1 bg-black text-white text-xs font-black uppercase border-2 border-black">{roleLabel}</span>
               {!isJastiper ? (
                 <span className="px-3 py-1 bg-gray-200 text-gray-400 text-xs font-black uppercase border-2 border-black border-dashed">Not Upgraded</span>
               ) : (
                 <span className="px-3 py-1 bg-yellow-400 text-black text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_#000]">Jastiper Pro</span>
               )}
             </div>
+
+            {error && (
+              <div className="mb-6 bg-red-100 border-4 border-black p-3 flex items-center gap-2 text-left font-bold">
+                <AlertCircle size={18} />
+                <span>{error}</span>
+              </div>
+            )}
             
             <div className="space-y-4 text-left border-t-4 border-black pt-6 mt-6">
-              <ProfileItem icon={<Mail size={18} />} label="Email" value="johndoe@example.com" />
-              <ProfileItem icon={<MapPin size={18} />} label="Location" value="Jakarta, Indonesia" />
-              <ProfileItem icon={<Calendar size={18} />} label="Joined" value="February 2026" />
+              <ProfileItem icon={<Mail size={18} />} label="Email" value={profile?.email || 'No email available'} />
+              <ProfileItem icon={<MapPin size={18} />} label="Location" value={location} />
+              <ProfileItem icon={<BadgeCheck size={18} />} label="Status" value={status} />
             </div>
 
             <button 
@@ -92,19 +132,19 @@ export default function AccountPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div onClick={() => router.push('/dashboard/wallet')} className="cursor-pointer h-full">
-              <DashboardActionCard 
-                icon={<CreditCard size={32} />} 
-                title="Wallet & Payments" 
-                description="Manage your balance, bank accounts, and payment methods."
-                color="bg-cyan-100"
-              />
-            </div>
+            <DashboardActionCard 
+              icon={<CreditCard size={32} />} 
+              title="Wallet & Payments" 
+              description="Manage your balance, bank accounts, and payment methods."
+              color="bg-cyan-100"
+              onClick={() => router.push('/dashboard/wallet')}
+            />
             <DashboardActionCard 
               icon={<History size={32} />} 
               title="Activity History" 
               description="Review all your past requests, offers, and transactions."
               color="bg-pink-100"
+              onClick={() => router.push('/dashboard/transactions')}
             />
           </div>
         </div>
@@ -125,9 +165,13 @@ function ProfileItem({ icon, label, value }: { icon: React.ReactNode, label: str
   );
 }
 
-function DashboardActionCard({ icon, title, description, color }: { icon: React.ReactNode, title: string, description: string, color: string }) {
+function DashboardActionCard({ icon, title, description, color, onClick }: { icon: React.ReactNode, title: string, description: string, color: string, onClick?: () => void }) {
   return (
-    <div className={`h-full border-4 border-black p-8 ${color} shadow-[8px_8px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_#000] transition-all`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-full w-full text-left border-4 border-black p-8 ${color} shadow-[8px_8px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_#000] transition-all text-black`}
+    >
       <div className="bg-white border-2 border-black w-14 h-14 flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_#000]">
         {icon}
       </div>
@@ -136,6 +180,6 @@ function DashboardActionCard({ icon, title, description, color }: { icon: React.
       <div className="mt-6 flex items-center gap-2 font-black uppercase text-sm group">
         Manage <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
       </div>
-    </div>
+    </button>
   );
 }

@@ -11,6 +11,7 @@ import {
   WalletActionForm,
   TransactionHistory
 } from '@/features/wallet/components';
+import { formatDollar } from '@/lib/currency';
 
 export default function WalletClient({ initialUserId }: { initialUserId: string }) {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function WalletClient({ initialUserId }: { initialUserId: string 
   };
 
   const handleActionWithConfirm = (type: 'topup' | 'withdraw', amount: number) => {
-    const formattedAmount = `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    const formattedAmount = formatDollar(amount);
     
     if (type === 'topup') {
       confirmAction(

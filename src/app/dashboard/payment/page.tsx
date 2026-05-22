@@ -1,10 +1,5 @@
-import { Suspense } from 'react';
-import PaymentClient from './PaymentClient';
+import { redirect } from 'next/navigation';
 
 export default function PaymentPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <PaymentClient />
-    </Suspense>
-  );
+  redirect('/dashboard/transactions');
 }

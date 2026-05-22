@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import PaymentClient from '../PaymentClient';
 import { usePayments } from '../../../../hooks/payment/usePayments';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -32,27 +32,22 @@ describe('PaymentClient', () => {
       fetchPayments: mockFetchPayments,
       createPayment: mockCreatePayment,
       pay: mockPay,
+      cancelPayment: jest.fn(),
     });
   });
 
   it('renders correctly', () => {
     render(<PaymentClient />);
-    expect(screen.getByRole('heading', { name: /^Payment$/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Confirm Payment/i })).toBeInTheDocument();
   });
 
-  it('submits create payment form', async () => {
-    mockGetParams.mockReturnValue(null); // No initial orderId
+  it('creates payment automatically from checkout order id', async () => {
+    mockGetParams.mockImplementation((key) => key === 'orderId' ? 'test-order-id' : null);
     render(<PaymentClient />);
-    
-    // Assuming PaymentActionForm renders an input for Order ID
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'test-order-id' } });
-    
-    // Using closest button or just finding submit button
-    const submitBtn = screen.getByRole('button', { name: /Initiate Payment/i });
-    fireEvent.click(submitBtn);
-    
-    expect(mockCreatePayment).toHaveBeenCalledWith({ orderId: 'test-order-id' });
+
+    await waitFor(() => {
+      expect(mockCreatePayment).toHaveBeenCalledWith({ orderId: 'test-order-id' });
+    });
   });
 
   it('shows success and error messages', () => {
@@ -65,6 +60,7 @@ describe('PaymentClient', () => {
       fetchPayments: mockFetchPayments,
       createPayment: mockCreatePayment,
       pay: mockPay,
+      cancelPayment: jest.fn(),
     });
 
     render(<PaymentClient />);
@@ -90,6 +86,7 @@ describe('PaymentClient', () => {
       fetchPayments: mockFetchPayments,
       createPayment: mockCreatePayment,
       pay: mockPay,
+      cancelPayment: jest.fn(),
     });
 
     render(<PaymentClient />);

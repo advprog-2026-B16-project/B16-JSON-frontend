@@ -11,16 +11,16 @@ describe('HomeClient', () => {
 
   it('renders the main hero text', () => {
     render(<HomeClient isAuthenticated={false} />);
-    expect(screen.getByText(/Beli Apa Saja/i)).toBeInTheDocument();
+    expect(screen.getByText(/Titip barang/i)).toBeInTheDocument();
   });
 
   it('shows Login button when not authenticated', () => {
     render(<HomeClient isAuthenticated={false} />);
-    expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Login/i }).length).toBeGreaterThan(0);
   });
 
   it('shows Dashboard button when authenticated', () => {
     render(<HomeClient isAuthenticated={true} />);
-    expect(screen.getByRole('button', { name: /Dashboard/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Dashboard/i }).length).toBeGreaterThan(0);
   });
 });

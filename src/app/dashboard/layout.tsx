@@ -9,8 +9,9 @@ export default async function DashboardLayout({
   const cookieStore = await cookies();
   const role = cookieStore.get('user_role')?.value;
 
-  const isJastiper = role === 'JASTIPER';
-  const isAdmin = role === 'ADMIN';
+  const normalizedRole = role?.toUpperCase() || '';
+  const isJastiper = normalizedRole.includes('JASTIPER');
+  const isAdmin = normalizedRole.includes('ADMIN');
 
   return (
     <DashboardClient isJastiper={isJastiper} isAdmin={isAdmin}>

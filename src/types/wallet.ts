@@ -10,6 +10,7 @@ export type TransactionType =
   | 'TOP_UP'
   | 'WITHDRAW'
   | 'PAYMENT'
+  | 'PAYOUT'
   | 'REFUND';
 
 export type TransactionStatus =
@@ -32,7 +33,7 @@ export interface PaymentResponse {
   transactionId: string;
   referenceCode: string;
   amount: number;
-  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'FAILED';
+  status: 'PENDING' | 'SUCCESS' | 'EXPIRED' | 'FAILED' | 'CANCELLED';
   expiresAt: string;
   paidAt: string | null;
 }
