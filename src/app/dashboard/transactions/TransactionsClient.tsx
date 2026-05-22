@@ -27,21 +27,21 @@ function displayPaymentStatus(status: PaymentResponse['status'] | 'EXPIRED') {
 }
 
 function paymentStatusColor(status: PaymentResponse['status'] | 'EXPIRED') {
-  if (status === 'SUCCESS') return 'bg-green-400';
-  if (status === 'PENDING') return 'bg-yellow-400';
-  if (status === 'FAILED') return 'bg-red-400';
-  if (status === 'CANCELLED') return 'bg-slate-300';
-  return 'bg-gray-400';
+  if (status === 'SUCCESS') return 'bg-green-400 text-black';
+  if (status === 'PENDING') return 'bg-yellow-400 text-black';
+  if (status === 'FAILED') return 'bg-red-400 text-black';
+  if (status === 'CANCELLED') return 'bg-slate-300 text-black';
+  return 'bg-gray-400 text-black';
 }
 
 function orderStatusColor(status?: OrderStatus) {
-  if (status === 'DONE') return 'bg-emerald-500 text-white';
-  if (status === 'COMPLETED') return 'bg-green-400';
-  if (status === 'SHIPPED') return 'bg-purple-400 text-white';
-  if (status === 'PURCHASED') return 'bg-blue-400 text-white';
-  if (status === 'PAID') return 'bg-cyan-300';
-  if (status === 'CANCELLED') return 'bg-red-500 text-white';
-  return 'bg-yellow-300';
+  if (status === 'DONE') return 'bg-emerald-500 text-black';
+  if (status === 'COMPLETED') return 'bg-green-400 text-black';
+  if (status === 'SHIPPED') return 'bg-purple-400 text-black';
+  if (status === 'PURCHASED') return 'bg-blue-400 text-black';
+  if (status === 'PAID') return 'bg-cyan-300 text-black';
+  if (status === 'CANCELLED') return 'bg-red-500 text-black';
+  return 'bg-yellow-300 text-black';
 }
 
 export default function TransactionsClient() {
@@ -172,7 +172,7 @@ export default function TransactionsClient() {
                     ? 'Payment window expired. Create a new payment from the order detail page.'
                     : `Payment is ${displayPaymentStatus(effectiveStatus).toLowerCase()}.`;
               const badgeColor = isRefunded
-                ? 'bg-green-500 text-white'
+                ? 'bg-green-500 text-black'
                 : effectiveStatus === 'SUCCESS' && order
                 ? orderStatusColor(order.orderStatus)
                 : paymentStatusColor(effectiveStatus);

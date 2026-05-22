@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function TransactionHistory({ transactions }: Props) {
-  const isPositive = (type: string) => type === 'TOP_UP' || type === 'REFUND';
+  const isPositive = (type: string) => type === 'TOP_UP' || type === 'REFUND' || type === 'PAYOUT';
 
   return (
     <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] text-black h-full overflow-hidden flex flex-col">

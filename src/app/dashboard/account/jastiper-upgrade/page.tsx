@@ -10,17 +10,71 @@ import {
   IdCard,
   Send,
   AlertCircle,
-  Lock
+  Lock,
+  Clock,
+  XCircle
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
-import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
+import type { ProfileResponseDTO, UpgradeRequestResponse } from '@/types/api';
+
+type RequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
+function normalizeRequestStatus(status?: string | null): RequestStatus | null {
+  const normalized = status?.toUpperCase();
+  if (normalized === 'PENDING' || normalized === 'ACCEPTED' || normalized === 'REJECTED') {
+    return normalized;
+  }
+  return null;
+}
+
+function statusCopy(status: RequestStatus | null, isJastiper: boolean) {
+  if (isJastiper || status === 'ACCEPTED') {
+    return {
+      label: 'Approved',
+      title: 'Jastiper Access Approved',
+      message: 'Your request has been approved. You can now manage catalogue items and Jastiper orders.',
+      color: 'bg-emerald-300',
+      icon: <CheckCircle2 size={28} />,
+    };
+  }
+
+  if (status === 'PENDING') {
+    return {
+      label: 'Requesting',
+      title: 'Request Under Review',
+      message: 'Your Jastiper upgrade request is waiting for admin review. We will unlock Jastiper tools once it is approved.',
+      color: 'bg-yellow-300',
+      icon: <Clock size={28} />,
+    };
+  }
+
+  if (status === 'REJECTED') {
+    return {
+      label: 'Rejected',
+      title: 'Request Needs Revision',
+      message: 'Your previous request was rejected. Update your credential or social media link, then submit a new request.',
+      color: 'bg-pink-300',
+      icon: <XCircle size={28} />,
+    };
+  }
+
+  return {
+    label: 'Not Requested',
+    title: 'Not Yet Requested',
+    message: 'Complete the form to request access as a Jastiper.',
+    color: 'bg-white',
+    icon: <AlertCircle size={28} />,
+  };
+}
 
 export default function JastiperUpgradePage() {
   const router = useRouter();
   const [isJastiper, setIsJastiper] = useState(false);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [upgradeRequest, setUpgradeRequest] = useState<UpgradeRequestResponse | null>(null);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -30,11 +84,42 @@ export default function JastiperUpgradePage() {
   });
 
   useEffect(() => {
-    // Check if already a jastiper from cookies or profile
-    const role = document.cookie.split('; ').find(row => row.startsWith('user_role='))?.split('=')[1];
-    if (role === 'JASTIPER' || role === 'ROLE_JASTIPER') {
-      setIsJastiper(true);
+    let isMounted = true;
+
+    async function loadUpgradeStatus() {
+      try {
+        const [profileResponse, requestResponse] = await Promise.all([
+          apiFetch('/user/profile', { cache: 'no-store' }),
+          apiFetch('/upgrade-request/me', { cache: 'no-store' }),
+        ]);
+
+        if (!isMounted) return;
+
+        if (profileResponse.ok) {
+          const profile = await profileResponse.json() as ProfileResponseDTO;
+          setIsJastiper(profile.role?.toUpperCase().includes('JASTIPER') ?? false);
+        }
+
+        if (requestResponse.ok && requestResponse.status !== 204) {
+          const request = await requestResponse.json() as UpgradeRequestResponse;
+          setUpgradeRequest(request);
+        }
+      } catch {
+        if (isMounted) {
+          setUpgradeRequest(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingStatus(false);
+        }
+      }
     }
+
+    loadUpgradeStatus();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -69,6 +154,10 @@ export default function JastiperUpgradePage() {
         throw new Error(data.detail || 'Failed to submit upgrade request.');
       }
 
+      const request = await response.json().catch(() => null) as UpgradeRequestResponse | null;
+      if (request) {
+        setUpgradeRequest(request);
+      }
       setIsSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred.');
@@ -103,6 +192,11 @@ export default function JastiperUpgradePage() {
     );
   }
 
+  const requestStatus = normalizeRequestStatus(upgradeRequest?.status);
+  const status = statusCopy(requestStatus, isJastiper);
+  const hasPendingRequest = requestStatus === 'PENDING';
+  const shouldHideForm = isJastiper || requestStatus === 'ACCEPTED' || hasPendingRequest;
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 text-black">
       <button
@@ -127,12 +221,12 @@ export default function JastiperUpgradePage() {
                 <span className="uppercase text-sm font-black tracking-tighter">Current Status</span>
               </div>
               <p className="text-xl italic">
-                {isJastiper ? "Role Active (Pro)" : "Not Yet Upgraded"}
+                {isLoadingStatus ? 'Checking...' : status.label}
               </p>
             </div>
 
             <p className="font-bold text-sm">
-              Complete the form to request your upgrade. This will allow you to create your own catalogue and fulfill orders.
+              {status.message}
             </p>
           </div>
         </div>
@@ -144,12 +238,34 @@ export default function JastiperUpgradePage() {
               <IdCard size={40} /> Upgrade Request Form
             </h1>
 
+            {!isLoadingStatus && (
+              <div className={`mb-8 border-4 border-black p-5 font-black shadow-[6px_6px_0px_0px_#000] ${status.color}`}>
+                <div className="mb-3 flex items-center gap-3 uppercase">
+                  <span className="flex h-12 w-12 items-center justify-center border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000]">
+                    {status.icon}
+                  </span>
+                  <div>
+                    <p className="text-xs text-gray-700">Upgrade Status</p>
+                    <h2 className="text-2xl">{status.title}</h2>
+                  </div>
+                </div>
+                <p className="text-sm leading-relaxed">{status.message}</p>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-400 border-2 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000] text-black">
                 {error}
               </div>
             )}
 
+            {shouldHideForm ? (
+              <div className="border-4 border-black bg-gray-50 p-6 font-bold shadow-[6px_6px_0px_0px_#000]">
+                {isJastiper || requestStatus === 'ACCEPTED'
+                  ? 'Your Jastiper tools are available from the dashboard navigation.'
+                  : 'No further action is needed while your request is under review.'}
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-6">
                 <div>
@@ -204,7 +320,6 @@ export default function JastiperUpgradePage() {
                     placeholder="••••••••"
                     className="w-full bg-white border-4 border-black p-4 font-bold focus:outline-none focus:bg-pink-50 shadow-[4px_4px_0px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-black"
                   />
-                  <PasswordStrengthMeter password={formData.confirmPassword} />
                 </div>
               </div>
 
@@ -220,6 +335,7 @@ export default function JastiperUpgradePage() {
                 )}
               </button>
             </form>
+            )}
           </div>
         </div>
       </div>

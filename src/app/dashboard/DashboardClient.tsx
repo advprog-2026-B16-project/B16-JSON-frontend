@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { apiFetch } from '@/lib/api';
+import type { ProfileResponseDTO } from '@/types/api';
 
 export default function DashboardClient({
   children,
@@ -31,6 +33,35 @@ export default function DashboardClient({
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const [profileIsJastiper, setProfileIsJastiper] = useState(isJastiper);
+  const [profileIsAdmin, setProfileIsAdmin] = useState(isAdmin);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function syncRoleFromProfile() {
+      try {
+        const response = await apiFetch('/user/profile', { cache: 'no-store' });
+        if (!response.ok || !isMounted) return;
+
+        const profile = await response.json() as ProfileResponseDTO;
+        const role = profile.role?.toUpperCase() || '';
+        setProfileIsJastiper(role.includes('JASTIPER'));
+        setProfileIsAdmin(role.includes('ADMIN'));
+      } catch {
+        // Keep the server-provided cookie role if profile sync is unavailable.
+      }
+    }
+
+    syncRoleFromProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const effectiveIsJastiper = isJastiper || profileIsJastiper;
+  const effectiveIsAdmin = isAdmin || profileIsAdmin;
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -73,7 +104,7 @@ export default function DashboardClient({
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-3 font-bold text-black">
-            {!isAdmin && navItems.map((item) => (
+            {!effectiveIsAdmin && navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -84,7 +115,7 @@ export default function DashboardClient({
               </Link>
             ))}
             
-            {!isAdmin && isJastiper && (
+            {!effectiveIsAdmin && effectiveIsJastiper && (
               <>
                 <div className="w-px h-8 bg-black/20 mx-1" />
                 {jastiperItems.map((item) => (
@@ -100,7 +131,7 @@ export default function DashboardClient({
               </>
             )}
 
-            {isAdmin && (
+            {effectiveIsAdmin && (
               <>
                 {adminItems.map((item) => (
                   <Link
@@ -146,7 +177,7 @@ export default function DashboardClient({
             className="fixed inset-0 z-40 bg-white border-b-4 border-black pt-24 px-6 md:hidden overflow-y-auto text-black"
           >
             <div className="flex flex-col gap-4 text-xl font-black pb-12 text-black">
-              {!isAdmin && (
+              {!effectiveIsAdmin && (
                 <>
                   <p className="text-xs uppercase text-gray-500 mb-[-10px]">General</p>
                   {navItems.map((item) => (
@@ -161,7 +192,7 @@ export default function DashboardClient({
                     </Link>
                   ))}
 
-                  {isJastiper && (
+                  {effectiveIsJastiper && (
                     <>
                       <p className="text-xs uppercase text-yellow-600 mt-4 mb-[-10px] flex items-center gap-2">
                         <ShieldCheck size={16} /> Jastiper Pro Menu
@@ -182,7 +213,7 @@ export default function DashboardClient({
                 </>
               )}
 
-              {isAdmin && (
+              {effectiveIsAdmin && (
                 <>
                   <p className="text-xs uppercase text-purple-600 mt-4 mb-[-10px] flex items-center gap-2">
                     <ShieldCheck size={16} /> Admin Command Center
