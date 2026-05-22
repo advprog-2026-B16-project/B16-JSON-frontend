@@ -27,6 +27,18 @@ export const PaymentService = {
     return await res.json();
   },
 
+  cancelPayment: async (referenceCode: string): Promise<PaymentResponse> => {
+    const res = await apiFetch(`/payments/${referenceCode}/cancel`, {
+      method: 'PATCH',
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to cancel payment');
+    }
+
+    return await res.json();
+  },
+
   getMyPayments: async (): Promise<PaymentResponse[]> => {
     const res = await apiFetch('/payments/me');
 

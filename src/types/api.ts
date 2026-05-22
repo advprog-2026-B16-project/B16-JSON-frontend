@@ -20,6 +20,9 @@ export interface ProfileResponseDTO {
   bio: string;
   location: string;
   role: string;
+  status?: string;
+  avatarUrl?: string;
+  successfulTransactions?: number;
 }
 
 export interface UpgradeRequest {
@@ -35,4 +38,27 @@ export interface UpgradeRequestResponse {
   fullName: string;
   credential: string;
   status: string;
+}
+
+export interface ProductDTO {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  originCountry: string;
+  purchaseDate: string;
+  jastiperId: string;
+  jastiperUsername?: string;
+  jastiperName?: string;
+}
+
+export interface ProductRequest {
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  originCountry: string;
+  purchaseDate: string;
+  jastiperId: string;
 }

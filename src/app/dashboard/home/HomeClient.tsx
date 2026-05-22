@@ -12,6 +12,20 @@ import {
 } from 'lucide-react';
 import { useWallet } from '@/hooks/wallet/useWallet';
 import { usePayments } from '@/hooks/payment/usePayments';
+import { PaymentResponse } from '@/types/wallet';
+import { formatCompactDollar } from '@/lib/currency';
+
+function displayStatus(status: PaymentResponse['status']) {
+  return status === 'PENDING' ? 'UNPAID' : status;
+}
+
+function statusColor(status: PaymentResponse['status']) {
+  if (status === 'SUCCESS') return 'bg-green-400';
+  if (status === 'PENDING') return 'bg-yellow-400';
+  if (status === 'FAILED') return 'bg-red-400';
+  if (status === 'CANCELLED') return 'bg-slate-300';
+  return 'bg-gray-400';
+}
 
 export default function HomeClient({ initialUserId }: { initialUserId: string }) {
   const router = useRouter();
@@ -23,7 +37,7 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
   const activePayments = payments.filter(p => p.status === 'PENDING').length;
 
   const totalSpent = payments
-    .filter(p => p.status === 'PAID')
+    .filter(p => p.status === 'SUCCESS')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   // Combine top 5 recent activities (Wallet Txs + Payments)
@@ -51,7 +65,7 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
         <StatCard 
           title="Wallet Balance" 
-          value={walletLoading ? '...' : `$${(balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} 
+          value={walletLoading ? '...' : formatCompactDollar(balance || 0)} 
           icon={<Wallet />} 
           color="bg-emerald-300" 
           onClick={() => router.push('/dashboard/wallet')}
@@ -65,7 +79,7 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
         />
         <StatCard 
           title="Total Spent" 
-          value={paymentsLoading ? '...' : `$${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} 
+          value={paymentsLoading ? '...' : formatCompactDollar(totalSpent)} 
           icon={<TrendingUp />} 
           color="bg-cyan-300" 
           onClick={() => router.push('/dashboard/transactions')}
@@ -111,13 +125,9 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
                   <TableRow 
                     key={payment.id}
                     item={`Order: ${payment.orderId}`} 
-                    status={payment.status} 
-                    price={`$${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} 
-                    statusColor={
-                      payment.status === 'PAID' ? 'bg-green-400' :
-                      payment.status === 'PENDING' ? 'bg-yellow-400' :
-                      payment.status === 'FAILED' ? 'bg-red-400' : 'bg-gray-400'
-                    } 
+                    status={displayStatus(payment.status)} 
+                    price={formatCompactDollar(payment.amount)} 
+                    statusColor={statusColor(payment.status)} 
                     onAction={() => router.push('/dashboard/transactions')}
                   />
                 ))
@@ -144,7 +154,7 @@ function StatCard({ title, value, icon, color, onClick }: { title: string, value
         <span className="font-black text-xs uppercase tracking-widest bg-white/30 px-2 py-1 border border-black">Stat</span>
       </div>
       <h3 className="text-lg font-bold uppercase">{title}</h3>
-      <p className="text-4xl font-black mt-2">{value}</p>
+      <p className="mt-2 truncate text-4xl font-black" title={value}>{value}</p>
     </motion.div>
   );
 }
@@ -152,13 +162,17 @@ function StatCard({ title, value, icon, color, onClick }: { title: string, value
 function TableRow({ item, status, price, statusColor, onAction }: { item: string, status: string, price: string, statusColor: string, onAction: () => void }) {
   return (
     <tr className="hover:bg-gray-50 transition-colors">
-      <td className="p-4 font-bold font-mono">{item}</td>
+      <td className="max-w-[220px] p-4 font-bold font-mono">
+        <span className="block truncate" title={item}>{item}</span>
+      </td>
       <td className="p-4">
         <span className={`px-3 py-1 border-2 border-black font-black uppercase text-xs ${statusColor} shadow-[2px_2px_0px_0px_#000]`}>
           {status}
         </span>
       </td>
-      <td className="p-4 font-black">{price}</td>
+      <td className="max-w-[160px] p-4 font-black">
+        <span className="block truncate" title={price}>{price}</span>
+      </td>
       <td className="p-4">
         <button onClick={onAction} className="flex items-center gap-1 font-black hover:text-main hover:underline decoration-2 underline-offset-4 transition-colors">
           View Details <ArrowRight size={16} />

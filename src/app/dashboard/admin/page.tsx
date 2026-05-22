@@ -12,6 +12,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
+import { formatDollar } from '@/lib/currency';
 import { UpgradeRequestResponse } from '@/types/api';
 
 interface UserData {
@@ -44,6 +45,11 @@ interface RawUpgradeRequest {
   credential?: string;
   status?: string;
   upgradeRequests?: RawUpgradeRequest[];
+}
+
+function isPendingRequest(status?: string) {
+  const normalized = status?.toUpperCase() || 'PENDING';
+  return normalized === 'PENDING' || normalized === 'WAITING' || normalized === 'SUBMITTED';
 }
 
 export default function AdminPortal() {
@@ -127,7 +133,8 @@ export default function AdminPortal() {
               fullName: r.fullName || r.full_name || 'No Name',
               credential: r.credential || 'No Credential',
               status: r.status?.toUpperCase() || 'PENDING'
-            }));
+            }))
+            .filter((r: UpgradeRequestResponse) => isPendingRequest(r.status));
 
           setRequests(normalized);
         } else {
@@ -178,13 +185,23 @@ export default function AdminPortal() {
     try {
       console.log(`[Admin] Attempting ${newStatus} for request ${requestId} (User: ${requestToUpdate.requesterUsername})`);
       
-      const endpoint = newStatus === 'ACCEPTED' 
-        ? `/admin/upgrade-requests/${requestId}/accept` 
+      const endpoint = newStatus === 'ACCEPTED'
+        ? `/admin/upgrade-requests/${requestId}/accept`
         : `/admin/upgrade-requests/${requestId}/reject`;
 
-      const response = await apiFetch(endpoint, {
+      let response = await apiFetch(endpoint, {
         method: 'PATCH',
       });
+
+      if (!response.ok && [404, 405].includes(response.status)) {
+        response = await apiFetch(`/upgrade-request/change-status/${requestId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            username: requestToUpdate.requesterUsername,
+            newStatus,
+          }),
+        });
+      }
       
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
@@ -471,7 +488,9 @@ export default function AdminPortal() {
                       </div>
                       <div>
                         <p className="text-xs uppercase font-black text-gray-500 mb-1">Amount</p>
-                        <span className="font-black text-xl text-green-600">${tx.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className="block max-w-[180px] truncate font-black text-xl text-green-600" title={formatDollar(tx.amount || 0)}>
+                          {formatDollar(tx.amount || 0)}
+                        </span>
                       </div>
                       <div className="flex items-end justify-end gap-2 mt-4 md:mt-0">
                         <button disabled={isActionLoading} onClick={() => confirmAction('REJECT TOP UP', `Are you sure you want to reject transaction ${tx.transactionId || tx.id}?`, () => handleRejectTopUp(tx.transactionId || tx.id || ''), 'REJECT', 'bg-pink-400 hover:bg-pink-500 text-white')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 w-full md:w-auto">

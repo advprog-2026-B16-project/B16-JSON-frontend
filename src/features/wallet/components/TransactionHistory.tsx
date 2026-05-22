@@ -1,6 +1,7 @@
 import { Transaction } from '@/types/wallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ArrowDownRight, ArrowUpRight, CheckCircle2, XCircle } from 'lucide-react';
+import { formatCompactDollar, formatDollar } from '@/lib/currency';
 
 interface Props {
   transactions: Transaction[];
@@ -8,13 +9,6 @@ interface Props {
 
 export function TransactionHistory({ transactions }: Props) {
   const isPositive = (type: string) => type === 'TOP_UP' || type === 'REFUND';
-
-  const formatAmount = (num: number) => {
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
 
   return (
     <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] text-black h-full overflow-hidden flex flex-col">
@@ -71,9 +65,9 @@ export function TransactionHistory({ transactions }: Props) {
                 <div className="flex items-center gap-4 shrink-0 max-w-[40%] pl-2">
                   <div 
                     className={`text-xl font-black truncate ${isPositive(tx.type) ? 'text-green-600' : 'text-red-600'}`}
-                    title={`$${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                    title={formatDollar(tx.amount)}
                   >
-                    {isPositive(tx.type) ? '+' : '-'}${formatAmount(tx.amount)}
+                    {isPositive(tx.type) ? '+' : '-'}{formatCompactDollar(tx.amount)}
                   </div>
                 </div>
               </motion.div>

@@ -5,6 +5,28 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { usePayments } from '@/hooks/payment/usePayments';
+import { PaymentResponse } from '@/types/wallet';
+import { formatCompactDollar, formatDollar } from '@/lib/currency';
+
+function getEffectiveStatus(payment: PaymentResponse) {
+  if (payment.status === 'PENDING' && payment.expiresAt && Date.now() >= new Date(payment.expiresAt).getTime()) {
+    return 'EXPIRED' as const;
+  }
+
+  return payment.status;
+}
+
+function displayStatus(status: PaymentResponse['status'] | 'EXPIRED') {
+  return status === 'PENDING' ? 'UNPAID' : status;
+}
+
+function statusColor(status: PaymentResponse['status']) {
+  if (status === 'SUCCESS') return 'bg-green-400';
+  if (status === 'PENDING') return 'bg-yellow-400';
+  if (status === 'FAILED') return 'bg-red-400';
+  if (status === 'CANCELLED') return 'bg-slate-300';
+  return 'bg-gray-400';
+}
 
 export default function TransactionsClient() {
   const router = useRouter();
@@ -53,7 +75,10 @@ export default function TransactionsClient() {
               <p className="mt-2 font-bold text-gray-600">You haven&apos;t made any transactions.</p>
             </motion.div>
           ) : (
-            [...payments].sort((a, b) => new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime()).map((payment) => (
+            [...payments].sort((a, b) => new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime()).map((payment) => {
+              const effectiveStatus = getEffectiveStatus(payment);
+
+              return (
               <motion.div 
                 key={payment.id} 
                 className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000] overflow-hidden"
@@ -77,15 +102,11 @@ export default function TransactionsClient() {
 
                   <div className="flex items-center w-full md:w-auto gap-6 justify-between md:justify-end">
                     <div className="text-right">
-                      <p className="text-2xl font-black text-green-600">
-                        ${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <p className="max-w-[220px] truncate text-2xl font-black text-green-600" title={formatDollar(payment.amount)}>
+                        {formatCompactDollar(payment.amount)}
                       </p>
-                      <span className={`px-3 py-1 border-2 border-black font-black uppercase text-xs shadow-[2px_2px_0px_0px_#000] mt-2 inline-block ${
-                        payment.status === 'PAID' ? 'bg-green-400' :
-                        payment.status === 'PENDING' ? 'bg-yellow-400' :
-                        payment.status === 'FAILED' ? 'bg-red-400' : 'bg-gray-400'
-                      }`}>
-                        {payment.status}
+                      <span className={`px-3 py-1 border-2 border-black font-black uppercase text-xs shadow-[2px_2px_0px_0px_#000] mt-2 inline-block ${statusColor(effectiveStatus)}`}>
+                        {displayStatus(effectiveStatus)}
                       </span>
                     </div>
                     <button className="p-2 border-2 border-black rounded-full hover:bg-gray-200">
@@ -109,15 +130,15 @@ export default function TransactionsClient() {
                           <ul className="space-y-3 font-medium">
                             <li className="flex flex-col">
                               <span className="text-xs font-black uppercase text-gray-500">Payment ID</span>
-                              <span className="font-mono">{payment.id}</span>
+                              <span className="truncate font-mono" title={payment.id}>{payment.id}</span>
                             </li>
                             <li className="flex flex-col">
                               <span className="text-xs font-black uppercase text-gray-500">Order ID</span>
-                              <span className="font-mono">{payment.orderId}</span>
+                              <span className="truncate font-mono" title={payment.orderId}>{payment.orderId}</span>
                             </li>
                             <li className="flex flex-col">
                               <span className="text-xs font-black uppercase text-gray-500">Transaction ID</span>
-                              <span className="font-mono">{payment.transactionId || 'N/A'}</span>
+                              <span className="truncate font-mono" title={payment.transactionId || 'N/A'}>{payment.transactionId || 'N/A'}</span>
                             </li>
                             <li className="flex flex-col">
                               <span className="text-xs font-black uppercase text-gray-500">Expires At</span>
@@ -134,7 +155,7 @@ export default function TransactionsClient() {
                         <div className="flex flex-col justify-between">
                           <div>
                             <h4 className="text-xl font-black uppercase mb-4 border-b-2 border-black pb-2">Actions</h4>
-                            {payment.status === 'PAID' && payment.transactionId ? (
+                            {effectiveStatus === 'SUCCESS' && payment.transactionId ? (
                               <div className="bg-purple-100 border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000]">
                                 <p className="font-bold mb-4 text-sm">Have an issue with this order? You can request a refund if the seller has not fulfilled the jastip properly.</p>
                                 <button 
@@ -144,15 +165,19 @@ export default function TransactionsClient() {
                                   <AlertCircle size={20} /> Request Refund
                                 </button>
                               </div>
-                            ) : payment.status === 'PENDING' ? (
+                            ) : effectiveStatus === 'PENDING' ? (
                               <div className="bg-yellow-100 border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000]">
                                 <p className="font-bold mb-4 text-sm">Please complete your payment before the expiration time.</p>
                                 <button 
-                                  onClick={() => router.push(`/dashboard/payment`)}
+                                  onClick={() => router.push(`/dashboard/payment/${payment.referenceCode}`)}
                                   className="w-full bg-black text-white px-4 py-3 font-black uppercase hover:bg-yellow-600 transition-colors border-2 border-black shadow-[4px_4px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none flex items-center justify-center gap-2"
                                 >
-                                  Go to Payment Panel
+                                  Process Payment
                                 </button>
+                              </div>
+                            ) : effectiveStatus === 'EXPIRED' ? (
+                              <div className="bg-gray-100 border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                                <p className="font-bold text-sm">This payment window has expired. Go back to the order detail and proceed to payment again.</p>
                               </div>
                             ) : (
                               <p className="font-bold italic text-gray-500">No actions available for this transaction status.</p>
@@ -164,7 +189,8 @@ export default function TransactionsClient() {
                   )}
                 </AnimatePresence>
               </motion.div>
-            ))
+              );
+            })
           )}
         </AnimatePresence>
       </div>

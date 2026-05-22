@@ -21,6 +21,11 @@ interface RawUpgradeRequest {
   status?: string;
 }
 
+function isPendingRequest(status?: string) {
+  const normalized = status?.toUpperCase() || 'PENDING';
+  return normalized === 'PENDING' || normalized === 'WAITING' || normalized === 'SUBMITTED';
+}
+
 export default function JastiperRequestsPage() {
   const [requests, setRequests] = useState<UpgradeRequestResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,23 +80,17 @@ export default function JastiperRequestsPage() {
             fullName: r.fullName || r.full_name || 'No Name',
             credential: r.credential || 'No Credential',
             status: r.status?.toUpperCase() || 'PENDING'
-          }));
+          }))
+          .filter((r: UpgradeRequestResponse) => isPendingRequest(r.status));
 
         console.log('[RequestsPage] Normalized:', normalized.length);
         setRequests(normalized);
       } else {
-        console.warn('[RequestsPage] Fetch failed, using fallback.');
-        // Silent Fallback
-        setRequests([
-          {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
-          {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
-        ]);
+        console.warn('[RequestsPage] Fetch failed.');
+        setRequests([]);
       }
     } catch {
-      setRequests([
-        {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
-        {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
-      ]);
+      setRequests([]);
     } finally {
       setIsLoading(false);
     }

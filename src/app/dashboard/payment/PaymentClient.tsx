@@ -1,17 +1,17 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, CreditCard, RefreshCw, WalletCards } from 'lucide-react';
 import { usePayments } from '@/hooks/payment/usePayments';
-import { PaymentHistory, PaymentActionForm } from '@/features/payment/components';
+import { PaymentHistory } from '@/features/payment/components';
 
 export default function PaymentClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialOrderId = searchParams.get('orderId') || '';
 
-  
   const {
     payments,
     isLoading,
@@ -21,71 +21,110 @@ export default function PaymentClient() {
     fetchPayments,
     createPayment,
     pay,
+    cancelPayment,
   } = usePayments();
+  const autoCreateAttempted = useRef(false);
 
-  const handleCreatePayment = async (orderId: string) => {
-    await createPayment({ orderId });
-  };
+  const relatedPayment = initialOrderId
+    ? payments.find((payment) => payment.orderId === initialOrderId)
+    : undefined;
+
+  useEffect(() => {
+    if (!initialOrderId || isLoading || actionLoading || relatedPayment || autoCreateAttempted.current) {
+      return;
+    }
+
+    autoCreateAttempted.current = true;
+    void createPayment({ orderId: initialOrderId });
+  }, [initialOrderId, isLoading, actionLoading, relatedPayment, createPayment]);
 
   return (
-    <div className="min-h-screen bg-background flex justify-center p-6 py-12">
-      <motion.button
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        onClick={() => router.back()}
-        className="absolute top-8 left-8 flex items-center gap-2 font-bold hover:underline decoration-4 text-black"
-      >
-        <ArrowLeft size={20} /> Back
-      </motion.button>
+    <div className="min-h-screen bg-white p-6 py-12 text-black">
+      <div className="mx-auto max-w-7xl">
+        <button
+          onClick={() => router.back()}
+          className="mb-8 flex items-center gap-2 border-4 border-black bg-white px-4 py-2 font-black uppercase shadow-[4px_4px_0px_0px_#000] hover:bg-gray-100"
+        >
+          <ArrowLeft size={20} /> Back
+        </button>
 
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="w-full max-w-5xl flex flex-col lg:flex-row gap-8"
-      >
-        {/* Left Side: Actions */}
-        <div className="w-full lg:w-1/3 flex flex-col gap-6">
-          <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] text-black">
-            
-            <div className="flex items-center justify-between border-b-4 border-black pb-4 mb-6">
-              <h1 className="text-3xl font-black uppercase tracking-tight">Payment</h1>
-              <button
-                onClick={fetchPayments}
-                disabled={isLoading}
-                className="p-2 border-4 border-black hover:bg-gray-100 disabled:opacity-50 transition-colors shadow-[4px_4px_0px_0px_#000] active:shadow-none active:translate-x-1 active:translate-y-1"
-                title="Refresh payments"
-              >
-                <RefreshCw size={24} className={isLoading ? "animate-spin" : ""} />
-              </button>
-            </div>
-
-            {/* Alerts */}
-            {error && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-red-400 border-4 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000]">
-                {error}
-              </motion.div>
-            )}
-
-            {success && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-emerald-400 border-4 border-black p-4 mb-6 font-bold shadow-[4px_4px_0px_0px_#000]">
-                {success}
-              </motion.div>
-            )}
-
-            <PaymentActionForm 
-              isLoading={actionLoading || isLoading} 
-              onSubmit={handleCreatePayment} 
-              initialOrderId={initialOrderId}
-            />
-            
+        <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="mb-3 inline-block border-4 border-black bg-cyan-300 px-3 py-1 text-sm font-black uppercase shadow-[4px_4px_0px_0px_#000]">
+              Secure Payment
+            </p>
+            <h1 className="text-5xl font-black uppercase text-green-600 md:text-6xl">Confirm Payment</h1>
+            <p className="mt-4 max-w-2xl border-l-8 border-green-400 bg-green-50 px-4 py-3 text-lg font-bold">
+              Payment request is created automatically after checkout, then you can pay or cancel it from here.
+            </p>
           </div>
+          <button
+            onClick={fetchPayments}
+            disabled={isLoading}
+            className="flex items-center gap-2 border-4 border-black bg-white px-5 py-3 font-black uppercase shadow-[4px_4px_0px_0px_#000] hover:bg-cyan-100 disabled:opacity-50"
+            title="Refresh payments"
+          >
+            <RefreshCw size={22} className={isLoading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
 
-        {/* Right Side: History */}
-        <div className="w-full lg:w-2/3 flex flex-col h-full">
-          <PaymentHistory payments={payments} onPay={pay} isLoading={actionLoading || isLoading} />
+        <div className="mb-10 grid grid-cols-1 gap-5 md:grid-cols-3">
+          <StepCard icon={<CheckCircle2 size={28} />} title="Order Created" active={Boolean(initialOrderId)} />
+          <StepCard icon={<CreditCard size={28} />} title="Payment Request" active={Boolean(relatedPayment)} />
+          <StepCard icon={<WalletCards size={28} />} title="Wallet Paid" active={relatedPayment?.status === 'SUCCESS'} />
         </div>
-      </motion.div>
+
+        {initialOrderId && (
+          <div className="mb-10 border-4 border-black bg-yellow-100 p-6 shadow-[8px_8px_0px_0px_#000]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase text-gray-600">Checkout confirmation</p>
+                <h2 className="text-2xl font-black uppercase">Order #{initialOrderId.slice(0, 8)}</h2>
+                <p className="mt-1 font-bold text-gray-700">
+                  {relatedPayment
+                    ? `Payment reference ${relatedPayment.referenceCode} is ${relatedPayment.status === 'PENDING' ? 'UNPAID' : relatedPayment.status}.`
+                    : 'Creating payment request automatically...'}
+                </p>
+              </div>
+              {relatedPayment?.status === 'SUCCESS' && (
+                <button
+                  onClick={() => router.push('/dashboard/transactions')}
+                  className="border-4 border-black bg-black px-6 py-3 font-black uppercase text-white shadow-[4px_4px_0px_0px_#000] hover:bg-green-400 hover:text-black"
+                >
+                  View Transaction
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {(error || success) && (
+          <div className={`mb-8 border-4 border-black p-5 font-black uppercase shadow-[6px_6px_0px_0px_#000] ${error ? 'bg-red-300' : 'bg-emerald-300'}`}>
+            {error || success}
+          </div>
+        )}
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="grid grid-cols-1 gap-8"
+        >
+          <PaymentHistory payments={payments} onPay={pay} onCancel={cancelPayment} isLoading={actionLoading || isLoading} />
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function StepCard({ icon, title, active }: { icon: React.ReactNode; title: string; active: boolean }) {
+  return (
+    <div className={`border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] ${active ? 'bg-green-300' : 'bg-white'}`}>
+      <div className="mb-3 flex items-center gap-3">
+        <div className="border-2 border-black bg-white p-2">{icon}</div>
+        <span className="text-xs font-black uppercase">{active ? 'Done' : 'Pending'}</span>
+      </div>
+      <p className="text-xl font-black uppercase">{title}</p>
     </div>
   );
 }

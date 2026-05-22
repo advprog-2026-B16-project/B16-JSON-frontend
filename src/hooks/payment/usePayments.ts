@@ -4,7 +4,7 @@ import { PaymentService } from '@/services/payment/payment.service';
 
 export const usePayments = () => {
   const [payments, setPayments] = useState<PaymentResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -63,6 +63,22 @@ export const usePayments = () => {
     }
   };
 
+  const cancelPayment = async (referenceCode: string) => {
+    setActionLoading(true);
+    clearAlerts();
+    try {
+      await PaymentService.cancelPayment(referenceCode);
+      setSuccess('Payment cancelled successfully!');
+      await fetchPayments();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel payment');
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return {
     payments,
     isLoading,
@@ -72,6 +88,7 @@ export const usePayments = () => {
     fetchPayments,
     createPayment,
     pay,
+    cancelPayment,
     clearAlerts,
   };
 };

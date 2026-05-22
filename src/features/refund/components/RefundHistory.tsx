@@ -1,6 +1,7 @@
 import { RefundResponse } from '@/types/wallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { formatDollar } from '@/lib/currency';
 
 interface Props {
   refunds: RefundResponse[];
@@ -55,8 +56,11 @@ export function RefundHistory({ refunds }: Props) {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className={`text-xl font-black ${refund.status === 'SUCCESS' ? 'text-green-600' : 'text-black'}`}>
-                    ${refund.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <div
+                    className={`max-w-[180px] truncate text-xl font-black ${refund.status === 'SUCCESS' ? 'text-green-600' : 'text-black'}`}
+                    title={formatDollar(refund.amount)}
+                  >
+                    {formatDollar(refund.amount)}
                   </div>
                 </div>
               </motion.div>

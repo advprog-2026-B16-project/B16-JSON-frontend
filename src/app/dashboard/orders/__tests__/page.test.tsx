@@ -1,48 +1,50 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import Page from '../page';
-import { getOrders, type Order } from '../orderApi';
-import React from 'react';
+import { getProfile } from '../../settings/actions';
+import { getMyJastiperOrders, type Order, updateOrderStatus } from '../orderApi';
 
-jest.mock('../orderApi', () => ({
-  getOrders: jest.fn(),
+jest.mock('../../settings/actions', () => ({
+  getProfile: jest.fn(),
 }));
 
-jest.mock('lucide-react', () => {
-  const IconMock = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} />;
-
-  return {
-    AlertCircle: IconMock,
-    ClipboardList: IconMock,
-    Loader2: IconMock,
-    MapPin: IconMock,
-    ShoppingCart: IconMock,
-    User: IconMock,
-  };
-});
-
-const mockedGetOrders = getOrders as jest.MockedFunction<typeof getOrders>;
+jest.mock('../orderApi', () => ({
+  getMyJastiperOrders: jest.fn(),
+  getOrderTotalAmount: jest.fn((order) => Number(order.totalAmount ?? order.totalPrice ?? order.amount ?? 0)),
+  updateOrderStatus: jest.fn(),
+  markJastiperOrderShipped: jest.fn(),
+  markJastiperOrderCompleted: jest.fn(),
+  cancelOrder: jest.fn(),
+}));
 
 describe('Orders Page', () => {
   beforeEach(() => {
-    mockedGetOrders.mockReset();
-    localStorage.setItem('auth_token', 'mock-token');
+    jest.clearAllMocks();
+    (getProfile as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        id: 'jastiper-1',
+        username: 'jastiper',
+        email: 'jastiper@test.com',
+        fullName: 'Jastiper Test',
+        bio: '',
+        location: 'Jakarta',
+        role: 'JASTIPER',
+      },
+    });
   });
 
-  afterEach(() => {
-    localStorage.clear();
-  });
-
-  it('renders backend orders data', async () => {
+  it('renders Jastiper order queue', async () => {
     const mockOrders: Order[] = [
       {
         orderId: 'order-001',
         productId: 'prod-abc-123',
         titipersId: 'user-titipers-01',
-        jastiperId: 'user-jastipers-01',
+        jastiperId: 'jastiper-1',
         quantity: 2,
+        totalAmount: 900000,
         shippingAddress: 'Jl. Margonda Raya No. 100, Depok',
-        orderStatus: 'PENDING',
-        createdAt: '2025-06-01T10:00:00',
+        orderStatus: 'PAID',
+        createdAt: '2026-06-01T10:00:00',
         updatedAt: null,
         jastiperRating: null,
         productRating: null,
@@ -50,35 +52,62 @@ describe('Orders Page', () => {
       },
     ];
 
-    mockedGetOrders.mockResolvedValue(mockOrders);
+    (getMyJastiperOrders as jest.Mock).mockResolvedValue(mockOrders);
 
     render(<Page />);
 
-    expect(await screen.findByRole('heading', { name: /Jastip Orders/i })).toBeInTheDocument();
-    expect(screen.getByText(/Order #order-001/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Jastiper Dashboard/i })).toBeInTheDocument();
+    expect(screen.getByText(/Order #order-00/i)).toBeInTheDocument();
     expect(screen.getByText(/Product ID: prod-abc-123/i)).toBeInTheDocument();
     expect(screen.getByText(/Jl\. Margonda Raya No\. 100, Depok/i)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(mockedGetOrders).toHaveBeenCalledWith('mock-token');
+      expect(getMyJastiperOrders).toHaveBeenCalled();
     });
   });
 
-  it('renders error state when fetching orders fails', async () => {
-    mockedGetOrders.mockRejectedValueOnce(new Error('Backend tidak tersedia'));
+  it('updates order status using valid next step', async () => {
+    const paidOrder: Order = {
+      orderId: 'order-001',
+      productId: 'prod-abc-123',
+      titipersId: 'user-titipers-01',
+      jastiperId: 'jastiper-1',
+      quantity: 1,
+      totalAmount: 450000,
+      shippingAddress: 'Jakarta',
+      orderStatus: 'PAID',
+      createdAt: '2026-06-01T10:00:00',
+    };
+
+    (getMyJastiperOrders as jest.Mock).mockResolvedValue([paidOrder]);
+    (updateOrderStatus as jest.Mock).mockResolvedValue({ ...paidOrder, orderStatus: 'PURCHASED' });
 
     render(<Page />);
 
-    expect(await screen.findByText(/Gagal memuat order/i)).toBeInTheDocument();
-    expect(screen.getByText(/Backend tidak tersedia/i)).toBeInTheDocument();
+    fireEvent.click(await screen.findByText(/Mark Purchased/i));
+
+    await waitFor(() => {
+      expect(updateOrderStatus).toHaveBeenCalledWith('order-001', 'PURCHASED');
+    });
+    expect(await screen.findByText(/Order moved to Purchased/i)).toBeInTheDocument();
   });
 
-  it('renders empty state when there are no orders', async () => {
-    mockedGetOrders.mockResolvedValueOnce([]);
+  it('shows access gate for non-Jastipers', async () => {
+    (getProfile as jest.Mock).mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: 'buyer-1',
+        username: 'buyer',
+        email: 'buyer@test.com',
+        fullName: 'Buyer Test',
+        bio: '',
+        location: 'Jakarta',
+        role: 'TITIPER',
+      },
+    });
 
     render(<Page />);
 
-    expect(await screen.findByRole('heading', { name: /Jastip Orders/i })).toBeInTheDocument();
-    expect(screen.getByText(/Belum ada pesanan masuk/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Jastiper access required/i)).toBeInTheDocument();
   });
 });

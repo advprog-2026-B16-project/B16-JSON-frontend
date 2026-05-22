@@ -7,15 +7,13 @@ import {
   Home,
   User, 
   ShoppingBag, 
-  Repeat, 
   Settings, 
   LogOut, 
   Menu, 
   X,
   BookOpen,
   ClipboardList,
-  ShieldCheck,
-  CreditCard
+  ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -41,14 +39,13 @@ export default function DashboardClient({
   const navItems = [
     { label: 'Home', icon: <Home size={20} />, href: '/dashboard/home' },
     { label: 'Marketplace', icon: <ShoppingBag size={20} />, href: '/dashboard/marketplace' },
-    { label: 'Transactions', icon: <Repeat size={20} />, href: '/dashboard/transactions' },
-    { label: 'Wallet', icon: <CreditCard size={20} />, href: '/dashboard/wallet' },
+    { label: 'Transactions', icon: <ClipboardList size={20} />, href: '/dashboard/transactions' },
     { label: 'Account', icon: <User size={20} />, href: '/dashboard/account' },
     { label: 'Settings', icon: <Settings size={20} />, href: '/dashboard/settings' },
   ];
 
   const jastiperItems = [
-    { label: 'Catalogue', icon: <BookOpen size={20} />, href: '/dashboard/catalogue' },
+    { label: 'Jastiper Dashboard', icon: <BookOpen size={20} />, href: '/dashboard/catalogue' },
     { label: 'Orders', icon: <ClipboardList size={20} />, href: '/dashboard/orders' },
   ];
 
@@ -81,7 +78,7 @@ export default function DashboardClient({
                 className={`flex items-center gap-2 px-3 py-2 border-2 border-transparent hover:border-black hover:bg-main transition-all text-black ${pathname === item.href ? 'bg-main border-black shadow-[2px_2px_0px_0px_#000]' : ''}`}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                <span className="whitespace-nowrap">{item.label}</span>
               </Link>
             ))}
             
@@ -95,7 +92,7 @@ export default function DashboardClient({
                     className={`flex items-center gap-2 px-3 py-2 border-2 border-black bg-yellow-100 hover:bg-yellow-200 transition-all text-black ${pathname === item.href ? 'bg-yellow-400 shadow-[2px_2px_0px_0px_#000]' : 'shadow-[2px_2px_0px_0px_#000]'}`}
                   >
                     {item.icon}
-                    <span>{item.label}</span>
+                    <span className="whitespace-nowrap">{item.label}</span>
                   </Link>
                 ))}
               </>
@@ -175,7 +172,7 @@ export default function DashboardClient({
                           className={`flex items-center gap-3 p-4 border-4 border-black bg-yellow-100 text-black ${pathname === item.href ? 'bg-yellow-400 shadow-none translate-x-1 translate-y-1' : 'shadow-[4px_4px_0px_0px_#000]'}`}
                         >
                           {item.icon}
-                          {item.label}
+                          <span className="whitespace-nowrap">{item.label}</span>
                         </Link>
                       ))}
                     </>

@@ -23,7 +23,7 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchProfile() {
       const result = await getProfile();
-      if (result.success && result.data) {
+      if (result.success === true) {
         setProfile(result.data);
       } else {
         setMessage({ type: 'error', text: result.error || 'Failed to load profile' });
@@ -41,7 +41,7 @@ export default function SettingsPage() {
     const formData = new FormData(e.currentTarget);
     const result = await updateProfile(formData);
 
-    if (result.success && result.data) {
+    if (result.success === true) {
       setProfile(result.data);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } else {

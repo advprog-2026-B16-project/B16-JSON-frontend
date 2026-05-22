@@ -31,7 +31,7 @@ describe('DashboardClient', () => {
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Marketplace')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Wallet')).toBeInTheDocument();
+    expect(screen.queryByText('Wallet')).not.toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
@@ -49,7 +49,7 @@ describe('DashboardClient', () => {
         <div>Content</div>
       </DashboardClient>
     );
-    expect(screen.getByText('Catalogue')).toBeInTheDocument();
+    expect(screen.getByText('Jastiper Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Orders')).toBeInTheDocument();
   });
 
