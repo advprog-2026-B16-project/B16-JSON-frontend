@@ -99,9 +99,15 @@ export default function PaymentClient() {
           </div>
         )}
 
-        {(error || success) && (
-          <div className={`mb-8 border-4 border-black p-5 font-black uppercase shadow-[6px_6px_0px_0px_#000] ${error ? 'bg-red-300' : 'bg-emerald-300'}`}>
-            {error || success}
+        {error && (
+          <div className="mb-8 border-4 border-black bg-red-300 p-5 font-black uppercase shadow-[6px_6px_0px_0px_#000]">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-8 border-4 border-black bg-emerald-300 p-5 font-black uppercase shadow-[6px_6px_0px_0px_#000]">
+            {success}
           </div>
         )}
 

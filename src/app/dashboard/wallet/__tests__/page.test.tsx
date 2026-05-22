@@ -35,7 +35,7 @@ describe('WalletClient', () => {
     render(<WalletClient initialUserId="test-user" />);
     expect(screen.getByRole('heading', { name: /Wallet/i })).toBeInTheDocument();
     // Assuming WalletBalance component renders the balance properly
-    expect(screen.getAllByText(/150\.50/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\$150\.5/).length).toBeGreaterThan(0);
   });
 
   it('handles back navigation', () => {
