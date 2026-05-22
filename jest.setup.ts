@@ -33,6 +33,8 @@ const filterMotionProps = (props: any) => {
     exit, 
     transition, 
     variants,
+    layout,
+    layoutId,
     ...rest 
   } = props;
   return rest;
@@ -129,6 +131,12 @@ jest.mock('lucide-react', () => {
     HelpCircle: IconMock,
     UserCircle: IconMock,
     Plane: IconMock,
-    History: IconMock
+    History: IconMock,
+    RefreshCw: IconMock,
+    Wallet: IconMock,
+    ArrowUpRight: IconMock,
+    ArrowDownRight: IconMock,
+    RotateCcw: IconMock,
+    Minus: IconMock
   };
 });

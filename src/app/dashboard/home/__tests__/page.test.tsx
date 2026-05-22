@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import Page from '../page';
 
 describe('Simple Dashboard Pages', () => {
