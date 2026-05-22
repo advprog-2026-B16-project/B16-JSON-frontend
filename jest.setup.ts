@@ -64,6 +64,7 @@ jest.mock('lucide-react', () => {
   return {
     ArrowRight: IconMock,
     ShoppingBag: IconMock,
+    Sparkles: IconMock,
     ShieldCheck: IconMock,
     Globe: IconMock,
     Zap: IconMock,
