@@ -245,7 +245,7 @@ export default function HomeClient({ isAuthenticated }: { isAuthenticated: boole
               Your next find is probably already waiting.
             </h2>
             <p className="mt-6 text-xl font-bold leading-relaxed">
-              Whether it is a travel-exclusive snack, a fashion drop, a collectible, or a practical item from another city, JSON helps turn "can someone bring this?" into a real, trackable order.
+              Whether it is a travel-exclusive snack, a fashion drop, a collectible, or a practical item from another city, JSON helps turn &quot;can someone bring this?&quot; into a real, trackable order.
             </p>
             <button
               onClick={goMarketplace}
