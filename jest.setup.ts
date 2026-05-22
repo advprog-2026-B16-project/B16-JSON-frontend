@@ -132,8 +132,6 @@ jest.mock('lucide-react', () => {
     UserCircle: IconMock,
     Plane: IconMock,
     History: IconMock,
-    RefreshCw: IconMock,
-    Wallet: IconMock,
     ArrowUpRight: IconMock,
     ArrowDownRight: IconMock,
     RotateCcw: IconMock,
