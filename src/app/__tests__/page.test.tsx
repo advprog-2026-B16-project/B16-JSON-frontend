@@ -11,12 +11,12 @@ describe('HomeClient', () => {
 
   it('renders the main hero text', () => {
     render(<HomeClient isAuthenticated={false} />);
-    expect(screen.getByText(/Titip barang/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bring home what you love/i)).toBeInTheDocument();
   });
 
-  it('shows Login button when not authenticated', () => {
+  it('shows start buttons when not authenticated', () => {
     render(<HomeClient isAuthenticated={false} />);
-    expect(screen.getAllByRole('button', { name: /Login/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /Start Now|Create Your Account/i }).length).toBeGreaterThan(0);
   });
 
   it('shows Dashboard button when authenticated', () => {
