@@ -1,13 +1,14 @@
 import { Transaction } from '@/types/wallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ArrowDownRight, ArrowUpRight, CheckCircle2, XCircle } from 'lucide-react';
+import { formatCompactDollar, formatDollar } from '@/lib/currency';
 
 interface Props {
   transactions: Transaction[];
 }
 
 export function TransactionHistory({ transactions }: Props) {
-  const isTopUp = (type: string) => type === 'TOP_UP';
+  const isPositive = (type: string) => type === 'TOP_UP' || type === 'REFUND';
 
   return (
     <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_#000] text-black h-full overflow-hidden flex flex-col">
@@ -31,35 +32,43 @@ export function TransactionHistory({ transactions }: Props) {
               <p className="font-bold">Top up your wallet to get started!</p>
             </motion.div>
           ) : (
-            [...transactions].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((tx) => (
+            [...transactions].reverse().slice(0, 10).map((tx) => (
               <motion.div
                 key={tx.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000] flex items-center justify-between hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#000] transition-all bg-gray-50"
               >
-                <div className="flex items-center gap-4">
-                  <div className={`p-2 border-2 border-black ${isTopUp(tx.type) ? 'bg-green-200' : 'bg-red-200'}`}>
-                    {isTopUp(tx.type) ? <ArrowDownRight size={20} className="text-green-700" /> : <ArrowUpRight size={20} className="text-red-700" />}
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className={`p-2 border-2 border-black shrink-0 ${isPositive(tx.type) ? 'bg-green-200' : 'bg-red-200'}`}>
+                    {isPositive(tx.type) ? <ArrowDownRight size={20} className="text-green-700" /> : <ArrowUpRight size={20} className="text-red-700" />}
                   </div>
-                  <div>
-                    <p className="font-black text-lg">{isTopUp(tx.type) ? 'Top Up' : 'Withdrawal'}</p>
-                    <div className="flex items-center gap-2 text-xs font-bold font-mono text-gray-500">
-                      <span>{new Date(tx.createdAt).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        {tx.status === 'SUCCESS' && <CheckCircle2 size={12} className="text-green-600" />}
-                        {tx.status === 'FAILED' && <XCircle size={12} className="text-red-600" />}
+                  <div className="min-w-0">
+                    <p className="font-black text-lg truncate">{tx.type.replace('_', ' ')}</p>
+                    <div className="flex items-center gap-2 text-xs font-bold font-mono truncate mt-1">
+                      <span className={`flex items-center gap-1 shrink-0 px-2 py-0.5 border-2 border-black ${
+                        tx.status === 'SUCCESS' ? 'bg-green-300 text-black' : 
+                        tx.status === 'FAILED' ? 'bg-red-300 text-black' : 
+                        'bg-yellow-300 text-black'
+                      }`}>
+                        {tx.status === 'SUCCESS' && <CheckCircle2 size={12} />}
+                        {tx.status === 'FAILED' && <XCircle size={12} />}
+                        {tx.status === 'PENDING' && <Clock size={12} />}
                         {tx.status}
                       </span>
                     </div>
                     {tx.description && (
-                      <p className="text-xs font-medium text-gray-600 mt-1 italic">&quot;{tx.description}&quot;</p>
+                      <p className="text-xs font-medium text-gray-600 mt-1 italic truncate">&quot;{tx.description}&quot;</p>
                     )}
                   </div>
                 </div>
-                <div className={`text-xl font-black ${isTopUp(tx.type) ? 'text-green-600' : 'text-red-600'}`}>
-                  {isTopUp(tx.type) ? '+' : '-'}${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                <div className="flex items-center gap-4 shrink-0 max-w-[40%] pl-2">
+                  <div 
+                    className={`text-xl font-black truncate ${isPositive(tx.type) ? 'text-green-600' : 'text-red-600'}`}
+                    title={formatDollar(tx.amount)}
+                  >
+                    {isPositive(tx.type) ? '+' : '-'}{formatCompactDollar(tx.amount)}
+                  </div>
                 </div>
               </motion.div>
             ))

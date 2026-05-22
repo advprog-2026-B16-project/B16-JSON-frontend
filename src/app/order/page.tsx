@@ -11,6 +11,7 @@ import {
   getOrders, createOrder, updateOrderStatus, cancelOrder, submitRating,
   Order, OrderStatus, CheckoutPayload, RatingPayload,
 } from './orderApi';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 // ─── Constants (sesuai enum Java OrderStatus) ─────────────────────────────────
 
@@ -515,6 +516,7 @@ export default function OrderPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [ratingTarget, setRatingTarget] = useState<Order | null>(null);
   const [detailTarget, setDetailTarget] = useState<Order | null>(null);
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = localStorage.getItem('auth_token') ?? '';
@@ -566,7 +568,6 @@ export default function OrderPage() {
   }
 
   async function handleCancel(orderId: string) {
-    if (!confirm('Batalkan pesanan ini? Refund akan otomatis dikirim ke saldo Titiper.')) return;
     setActionLoadingId(orderId);
     setError(null);
     try {
@@ -717,7 +718,7 @@ export default function OrderPage() {
                       role={role}
                       actionLoadingId={actionLoadingId}
                       onAdvance={handleAdvance}
-                      onCancel={handleCancel}
+                      onCancel={setCancelTargetId}
                       onRate={setRatingTarget}
                       onDetail={setDetailTarget}
                   />
@@ -746,6 +747,20 @@ export default function OrderPage() {
               <DetailModal order={detailTarget} onClose={() => setDetailTarget(null)} />
           )}
         </AnimatePresence>
+        <ConfirmModal
+          open={Boolean(cancelTargetId)}
+          title="Batalkan Pesanan?"
+          message="Refund akan otomatis dikirim ke saldo Titiper."
+          confirmText="Batalkan"
+          confirmClassName="bg-red-400 text-white hover:bg-red-500"
+          isLoading={Boolean(actionLoadingId)}
+          onCancel={() => setCancelTargetId(null)}
+          onConfirm={async () => {
+            if (!cancelTargetId) return;
+            await handleCancel(cancelTargetId);
+            setCancelTargetId(null);
+          }}
+        />
       </div>
   );
 }

@@ -1,8 +1,7 @@
-import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AdminPortal from '../page';
 import { apiFetch } from '../../../../lib/api';
 import * as navigation from 'next/navigation';
-import { ReactNode } from 'react';
 
 jest.mock('../../../../lib/api', () => ({
   apiFetch: jest.fn(),
@@ -14,24 +13,7 @@ jest.mock('next/navigation', () => ({
   usePathname: jest.fn(() => '/'),
 }));
 
-jest.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: { children: ReactNode; layout?: boolean; [key: string]: unknown }) => <div {...props}>{children}</div>,
-  },
-  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
-jest.mock('lucide-react', () => {
-  const IconMock = (props: Record<string, unknown>) => <svg data-testid="icon" {...props} />;
-  return {
-    ShieldCheck: IconMock, Users: IconMock, ClipboardList: IconMock,
-    Activity: IconMock, Mail: IconMock, User: IconMock,
-    Calendar: IconMock, ExternalLink: IconMock, CheckCircle: IconMock,
-    XCircle: IconMock, LayoutDashboard: IconMock, Loader2: IconMock,
-  };
-});
-
-describe('AdminPortal 100% Final Strictly', () => {
+describe('AdminPortal', () => {
   const mockPush = jest.fn();
   const mockGet = jest.fn();
 
@@ -43,7 +25,6 @@ describe('AdminPortal 100% Final Strictly', () => {
   });
 
   afterEach(() => {
-    cleanup();
     jest.useRealTimers();
   });
 
@@ -53,66 +34,51 @@ describe('AdminPortal 100% Final Strictly', () => {
     json: async () => data,
   });
 
-  it('exhausts all user and request extraction branches', async () => {
-    // Path 1: Array success for both
+  it('renders pending upgrade requests and filters accepted requests', async () => {
     (apiFetch as jest.Mock).mockImplementation((url) => {
-      if (url.includes('/user/')) return Promise.resolve(mockRes([{ id: 'u1-unq', username: 'un1-unq' }]));
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'un1-unq' }]));
+      if (url === '/admin/users') return Promise.resolve(mockRes([]));
+      if (url === '/admin/upgrade-requests') {
+        return Promise.resolve(mockRes([
+          { id: 'pending-1', requesterUsername: 'pending-user', status: 'PENDING' },
+          { id: 'accepted-1', requesterUsername: 'accepted-user', status: 'ACCEPTED' },
+        ]));
+      }
       return Promise.resolve(mockRes([]));
     });
-    render(<AdminPortal />);
-    await act(async () => {});
-    await act(async () => { fireEvent.click(screen.getByText(/User Registry/i)); });
-    expect(await screen.findByText('un1-unq')).toBeInTheDocument();
-    cleanup();
 
-    // Path 2: getUsers fail -> fallback (Line 62 else)
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, false)); // primary fail
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, false)); // secondary fail
-    (apiFetch as jest.Mock).mockResolvedValue(mockRes([]));
     render(<AdminPortal />);
-    await act(async () => {});
-    await act(async () => { fireEvent.click(screen.getByText(/User Registry/i)); });
-    expect(await screen.findByText('admin1')).toBeInTheDocument();
-    cleanup();
 
-    // Path 3: requests primary empty -> alt success -> upgradeRequests key
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes([])); // users
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes([], true)); // primary empty
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({ upgradeRequests: [{ id: 'alt-unq', requesterUsername: 'un-alt' }] }));
-    render(<AdminPortal />);
-    expect(await screen.findByText(new RegExp('Upgrade Requests \\(1\\)', 'i'))).toBeInTheDocument();
-    cleanup();
-
-    // Path 4: requests fallback all fail (Line 121)
-    (apiFetch as jest.Mock).mockResolvedValue(mockRes({}, false));
-    render(<AdminPortal />);
-    expect(await screen.findByText(new RegExp('Upgrade Requests \\(2\\)', 'i'))).toBeInTheDocument();
+    expect(await screen.findByText(/Upgrade Requests \(1\)/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Upgrade Requests/i));
+    expect(await screen.findByText('pending-user')).toBeInTheDocument();
+    expect(screen.queryByText('accepted-user')).not.toBeInTheDocument();
   });
 
-  it('exhausts handleRequestAction branches strictly', async () => {
-    (apiFetch as jest.Mock).mockImplementation((url) => {
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq' }]));
-      return Promise.resolve(mockRes({ success: true }));
-    });
-    render(<AdminPortal />);
-    await act(async () => { fireEvent.click(screen.getByText(/Upgrade Requests/i)); });
-    
-    // APPROVE success (Line 178)
-    await act(async () => { fireEvent.click(screen.getAllByText('APPROVE')[0]); });
-    expect(await screen.findByText(/Successfully approved/i)).toBeInTheDocument();
-    await act(async () => { jest.runOnlyPendingTimers(); }); 
-    cleanup();
-
-    // failure with message fallback
+  it('falls back to change-status endpoint when admin accept endpoint is missing', async () => {
     (apiFetch as jest.Mock).mockImplementation((url, opts) => {
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq' }]));
-      if (opts?.method === 'PATCH') return Promise.resolve({ ok: false, status: 400, json: async () => ({ message: 'MsgFail' }) });
+      if (url === '/admin/users') return Promise.resolve(mockRes([]));
+      if (url === '/admin/upgrade-requests') {
+        return Promise.resolve(mockRes([{ id: 'request-1', requesterUsername: 'u1', status: 'PENDING' }]));
+      }
+      if (url === '/admin/topups') return Promise.resolve(mockRes([]));
+      if (url === '/admin/upgrade-requests/request-1/accept' && opts?.method === 'PATCH') {
+        return Promise.resolve(mockRes({ detail: 'missing' }, false, 404));
+      }
+      if (url === '/upgrade-request/change-status/request-1' && opts?.method === 'PATCH') {
+        return Promise.resolve(mockRes({ success: true }));
+      }
       return Promise.resolve(mockRes([]));
     });
+
     render(<AdminPortal />);
-    await act(async () => { fireEvent.click(screen.getByText(/Upgrade Requests/i)); });
-    await act(async () => { fireEvent.click(screen.getAllByText('REJECT')[0]); });
-    expect(await screen.findByText('MsgFail')).toBeInTheDocument();
+    fireEvent.click(await screen.findByText(/Upgrade Requests/i));
+    fireEvent.click(await screen.findByText('APPROVE'));
+    const approveButtons = await screen.findAllByText('APPROVE');
+    fireEvent.click(approveButtons[approveButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith('/upgrade-request/change-status/request-1', expect.objectContaining({ method: 'PATCH' }));
+    });
+    expect(await screen.findByText(/Successfully approved/i)).toBeInTheDocument();
   });
 });

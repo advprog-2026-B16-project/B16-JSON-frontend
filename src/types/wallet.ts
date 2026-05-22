@@ -1,23 +1,16 @@
 export interface Transaction {
   id: string;
-  walletId: string;
-  userId: string;
-  orderId: string;
-
   type: TransactionType;
-
-  status: TransactionStatus;
-
   amount: number;
+  status: TransactionStatus;
   description: string;
-
-  createdAt: string;
 }
 
 export type TransactionType =
-  | 'TOPUP'
+  | 'TOP_UP'
   | 'WITHDRAW'
   | 'PAYMENT'
+  | 'PAYOUT'
   | 'REFUND';
 
 export type TransactionStatus =
@@ -28,4 +21,34 @@ export type TransactionStatus =
 export interface WalletActionRequest {
   userId: string;
   amount: number;
+}
+
+export interface PaymentRequest {
+  orderId: string;
+}
+
+export interface PaymentResponse {
+  id: string;
+  orderId: string;
+  transactionId: string;
+  referenceCode: string;
+  amount: number;
+  status: 'PENDING' | 'SUCCESS' | 'EXPIRED' | 'FAILED' | 'CANCELLED';
+  expiresAt: string;
+  paidAt: string | null;
+}
+
+export interface RefundRequest {
+  transactionId: string;
+  reason: string;
+}
+
+export interface RefundResponse {
+  id: string;
+  originalTransactionId: string;
+  refundTransactionId: string;
+  orderId: string;
+  amount: number;
+  reason: string;
+  status: TransactionStatus;
 }

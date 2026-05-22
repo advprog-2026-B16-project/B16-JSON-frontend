@@ -1,85 +1,162 @@
-const API_URL = '/api/proxy';
+import { apiFetch } from '@/lib/api';
 
-export type OrderStatus = 'PENDING' | 'PAID' | 'PURCHASED' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
+export type OrderStatus = 'PENDING' | 'PAID' | 'PURCHASED' | 'SHIPPED' | 'COMPLETED' | 'DONE' | 'CANCELLED';
 
 export interface Order {
-    orderId: string;
-    productId: string;
-    titipersId: string;
-    jastiperId?: string | null;
-    quantity: number;
-    totalAmount?: number | null;
-    shippingAddress: string;
-    orderStatus: OrderStatus;
-    createdAt: string;
-    updatedAt?: string | null;
-    jastiperRating?: number | null;
-    productRating?: number | null;
-    cancellationReason?: string | null;
+  orderId: string;
+  productId: string;
+  titipersId: string;
+  jastiperId?: string | null;
+  quantity: number;
+  totalAmount?: number | string | null;
+  totalPrice?: number | string | null;
+  amount?: number | string | null;
+  shippingAddress: string;
+  orderStatus: OrderStatus;
+  createdAt: string;
+  updatedAt?: string | null;
+  jastiperRating?: number | null;
+  productRating?: number | null;
+  cancellationReason?: string | null;
 }
 
 export interface CheckoutPayload {
-    productId: string;
-    quantity: number;
-    shippingAddress: string;
+  productId: string;
+  titipersId: string;
+  jastiperId: string;
+  quantity: number;
+  shippingAddress: string;
 }
 
 export interface RatingPayload {
-    jastiperRating: number;
-    productRating: number;
+  jastiperRating: number;
+  productRating: number;
 }
 
-const getHeaders = (token: string) => ({
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-});
-
-export async function getOrders(token: string): Promise<Order[]> {
-    const res = await fetch(`${API_URL}/orders`, {
-        method: 'GET',
-        headers: getHeaders(token),
-    });
-    if (!res.ok) throw new Error('Gagal mengambil daftar pesanan');
-    return res.json();
+async function readJson<T>(response: Response): Promise<T | null> {
+  const text = await response.text();
+  if (!text) return null;
+  return JSON.parse(text) as T;
 }
 
-export async function createOrder(payload: CheckoutPayload, token: string): Promise<Order> {
-    const res = await fetch(`${API_URL}/orders/checkout`, {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error('Gagal melakukan checkout pesanan');
-    return res.json();
+async function getErrorMessage(response: Response, fallback: string) {
+  const data = await readJson<{ detail?: string; message?: string; title?: string }>(response).catch(() => null);
+  return data?.detail || data?.message || data?.title || fallback;
 }
 
-export async function cancelOrder(orderId: string, token: string, reason: string = 'Dibatalkan oleh pengguna'): Promise<Order> {
-    const url = new URL(`${window.location.origin}${API_URL}/orders/${orderId}/cancel`);
-    url.searchParams.append('cancellationReason', reason);
+async function expectOk<T>(response: Response, fallback: string): Promise<T> {
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, fallback));
+  }
 
-    const res = await fetch(url.toString(), {
-        method: 'PATCH',
-        headers: getHeaders(token),
-    });
-    if (!res.ok) throw new Error('Gagal membatalkan pesanan');
-    return res.json();
+  const data = await readJson<T>(response);
+  if (!data) throw new Error('Backend returned an empty response');
+  return data;
 }
 
-export async function submitRating(orderId: string, payload: RatingPayload, token: string): Promise<Order> {
-    const res = await fetch(`${API_URL}/orders/${orderId}/rating`, {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error('Gagal mengirim penilaian');
-    return res.json();
+export async function getOrders(): Promise<Order[]> {
+  const response = await apiFetch('/orders', { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, 'Failed to fetch orders'));
+  }
+
+  return (await readJson<Order[]>(response)) || [];
 }
 
-export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus, token: string): Promise<Order> {
-    const res = await fetch(`${API_URL}/orders/${orderId}/status?status=${nextStatus}`, {
-        method: 'PATCH',
-        headers: getHeaders(token),
-    });
-    if (!res.ok) throw new Error('Gagal memperbarui status pesanan');
-    return res.json();
+export async function getOrdersByTitipersId(titipersId: string): Promise<Order[]> {
+  const response = await apiFetch(`/orders/titipers/${titipersId}`, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, 'Failed to fetch buyer orders'));
+  }
+
+  return (await readJson<Order[]>(response)) || [];
+}
+
+export async function getOrdersByJastiperId(jastiperId: string): Promise<Order[]> {
+  const response = await apiFetch(`/orders/jastiper/${jastiperId}`, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, 'Failed to fetch Jastiper orders'));
+  }
+
+  return (await readJson<Order[]>(response)) || [];
+}
+
+export async function getMyJastiperOrders(): Promise<Order[]> {
+  const response = await apiFetch('/jastiper/orders/me', { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, 'Failed to fetch Jastiper orders'));
+  }
+
+  return (await readJson<Order[]>(response)) || [];
+}
+
+export async function getOrderById(orderId: string): Promise<Order> {
+  const response = await apiFetch(`/orders/${orderId}`, { cache: 'no-store' });
+  return expectOk<Order>(response, 'Failed to fetch order');
+}
+
+export async function createOrder(payload: CheckoutPayload): Promise<Order> {
+  const response = await apiFetch('/orders/checkout', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  return expectOk<Order>(response, 'Failed to checkout order');
+}
+
+export async function cancelOrder(orderId: string, reason = 'Cancelled by Jastiper'): Promise<Order> {
+  const params = new URLSearchParams({ cancellationReason: reason });
+  const response = await apiFetch(`/orders/${orderId}/cancel?${params.toString()}`, {
+    method: 'PATCH',
+  });
+
+  return expectOk<Order>(response, 'Failed to cancel order');
+}
+
+export async function submitRating(orderId: string, payload: RatingPayload): Promise<Order> {
+  const response = await apiFetch(`/orders/${orderId}/rating`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  return expectOk<Order>(response, 'Failed to submit rating');
+}
+
+export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus): Promise<Order> {
+  const params = new URLSearchParams({ status: nextStatus });
+  const response = await apiFetch(`/orders/${orderId}/status?${params.toString()}`, {
+    method: 'PATCH',
+  });
+
+  return expectOk<Order>(response, 'Failed to update order status');
+}
+
+export async function markJastiperOrderShipped(orderId: string): Promise<Order> {
+  const response = await apiFetch(`/jastiper/orders/${orderId}/shipped`, {
+    method: 'PATCH',
+  });
+
+  return expectOk<Order>(response, 'Failed to mark order as shipped');
+}
+
+export async function markJastiperOrderCompleted(orderId: string): Promise<Order> {
+  const response = await apiFetch(`/jastiper/orders/${orderId}/completed`, {
+    method: 'PATCH',
+  });
+
+  return expectOk<Order>(response, 'Failed to mark order as completed');
+}
+
+export async function markTitiperOrderDone(orderId: string): Promise<Order> {
+  const response = await apiFetch(`/titiper/orders/${orderId}/done`, {
+    method: 'PATCH',
+  });
+
+  return expectOk<Order>(response, 'Failed to confirm order as done');
+}
+
+export function getOrderTotalAmount(order: Pick<Order, 'totalAmount' | 'totalPrice' | 'amount'>) {
+  const raw = order.totalAmount ?? order.totalPrice ?? order.amount ?? 0;
+  const value = typeof raw === 'string' ? Number(raw) : raw;
+  return Number.isFinite(value) ? value : 0;
 }

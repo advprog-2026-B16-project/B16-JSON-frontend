@@ -1,5 +1,6 @@
 import { Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
+import { formatDollar } from '@/lib/currency';
 
 type WalletActionType = 'topup' | 'withdraw';
 
@@ -87,13 +88,13 @@ export function WalletActionForm({
             type="number"
             min="1"
             max={!isTopUp ? maxAmount ?? undefined : undefined}
-            step="0.01"
+            step="1"
             required
             value={amount}
             onChange={(e) =>
               setAmount(e.target.value)
             }
-            placeholder="0.00"
+            placeholder="0"
             className={`w-full bg-white border-4 border-black p-3 pl-10 font-bold focus:outline-none transition-colors shadow-[2px_2px_0px_0px_#000] focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] ${
               isTopUp
                 ? 'focus:bg-pink-100'
@@ -105,9 +106,8 @@ export function WalletActionForm({
         {!isTopUp &&
           maxAmount !== null &&
           maxAmount !== undefined && (
-            <p className="text-sm font-bold">
-              Available balance: $
-              {maxAmount.toFixed(2)}
+            <p className="truncate text-sm font-bold" title={formatDollar(maxAmount)}>
+              Available balance: {formatDollar(maxAmount)}
             </p>
           )}
 

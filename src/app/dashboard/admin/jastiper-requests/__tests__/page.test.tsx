@@ -1,35 +1,18 @@
-import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import JastiperRequestsPage from '../page';
 import { apiFetch } from '../../../../../lib/api';
-import { ReactNode } from 'react';
 
 jest.mock('../../../../../lib/api', () => ({
   apiFetch: jest.fn(),
 }));
 
-jest.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: { children: ReactNode; layout?: boolean; [key: string]: unknown }) => <div {...props}>{children}</div>,
-  },
-  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
-jest.mock('lucide-react', () => {
-  const IconMock = (props: Record<string, unknown>) => <svg data-testid="icon" {...props} />;
-  return {
-    ClipboardList: IconMock, CheckCircle: IconMock, XCircle: IconMock, 
-    User: IconMock, Calendar: IconMock, ExternalLink: IconMock, Loader2: IconMock,
-  };
-});
-
-describe('JastiperRequestsPage 100% Final Precision', () => {
+describe('JastiperRequestsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
   });
 
   afterEach(() => {
-    cleanup();
     jest.useRealTimers();
   });
 
@@ -39,67 +22,39 @@ describe('JastiperRequestsPage 100% Final Precision', () => {
     json: async () => data,
   });
 
-  it('exhausts all fetch and normalization branches strictly', async () => {
-    // 1. requests key success
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({ requests: [{ id: 'r1-unq', requesterUsername: 'un1-unq' }] }));
-    render(<JastiperRequestsPage />);
-    expect(await screen.findByText('un1-unq')).toBeInTheDocument();
-    cleanup();
+  it('shows only pending requests', async () => {
+    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes([
+      { id: 'pending-1', requesterUsername: 'pending-user', status: 'PENDING' },
+      { id: 'accepted-1', requesterUsername: 'accepted-user', status: 'ACCEPTED' },
+    ]));
 
-    // 2. isEmpty object -> alt success
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes({}, true));
-    (apiFetch as jest.Mock).mockResolvedValueOnce(mockRes([{ id: 'r2-unq', requesterUsername: 'un2-unq' }]));
     render(<JastiperRequestsPage />);
-    expect(await screen.findByText('un2-unq')).toBeInTheDocument();
-    cleanup();
 
-    // 3. all fail fallback (Line 68-70)
-    (apiFetch as jest.Mock).mockResolvedValue(mockRes({}, false));
-    render(<JastiperRequestsPage />);
-    expect(await screen.findByText('aaa aaa aaa')).toBeInTheDocument();
-    cleanup();
-
-    // 4. catch fallback
-    (apiFetch as jest.Mock).mockRejectedValue(new Error());
-    render(<JastiperRequestsPage />);
-    expect(await screen.findByText('bbb bbb bbb')).toBeInTheDocument();
+    expect(await screen.findByText('pending-user')).toBeInTheDocument();
+    expect(screen.queryByText('accepted-user')).not.toBeInTheDocument();
   });
 
-  it('exhausts handleAction all branches strictly', async () => {
-    (apiFetch as jest.Mock).mockImplementation((url) => {
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq' }]));
-      return Promise.resolve(mockRes({ success: true }));
-    });
-    render(<JastiperRequestsPage />);
-    await screen.findByText('u1-unq');
-    
-    // APPROVE success (Line 89)
-    await act(async () => { fireEvent.click(screen.getByText('APPROVE')); });
-    expect(screen.getByText(/Successfully approved/i)).toBeInTheDocument();
-    await act(async () => { jest.runOnlyPendingTimers(); });
-    cleanup();
+  it('does not render dummy fallback data when fetch fails', async () => {
+    (apiFetch as jest.Mock).mockResolvedValue(mockRes({}, false));
 
-    // Failure with detail
+    render(<JastiperRequestsPage />);
+
+    expect(await screen.findByText(/No pending upgrade requests found/i)).toBeInTheDocument();
+  });
+
+  it('updates request status', async () => {
     (apiFetch as jest.Mock).mockImplementation((url, opts) => {
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq' }]));
-      if (opts?.method === 'PATCH') return Promise.resolve({ ok: false, status: 400, json: async () => ({ detail: 'Det-unq' }) });
+      if (url.includes('/get-all')) {
+        return Promise.resolve(mockRes([{ id: 'r1', requesterUsername: 'u1', status: 'PENDING' }]));
+      }
+      if (opts?.method === 'PATCH') return Promise.resolve(mockRes({ success: true }));
       return Promise.resolve(mockRes([]));
     });
-    render(<JastiperRequestsPage />);
-    await screen.findByText('u1-unq');
-    await act(async () => { fireEvent.click(screen.getByText('REJECT')); });
-    expect(await screen.findByText(/Det-unq/i)).toBeInTheDocument();
-    cleanup();
 
-    // catch branch non-Error (Line 113)
-    (apiFetch as jest.Mock).mockImplementation((url, opts) => {
-      if (url.includes('/get-all')) return Promise.resolve(mockRes([{ id: 'r1-unq', requesterUsername: 'u1-unq' }]));
-      if (opts?.method === 'PATCH') return Promise.reject("Fail-unq");
-      return Promise.resolve(mockRes([]));
-    });
     render(<JastiperRequestsPage />);
-    await screen.findByText('u1-unq');
-    await act(async () => { fireEvent.click(screen.getByText('APPROVE')); });
-    expect(await screen.findByText(/Action failed/i)).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByText('APPROVE'));
+    fireEvent.click(await screen.findByText('Approve'));
+    expect(await screen.findByText(/Successfully approved/i)).toBeInTheDocument();
   });
 });

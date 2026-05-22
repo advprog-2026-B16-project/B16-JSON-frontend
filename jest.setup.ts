@@ -33,6 +33,8 @@ const filterMotionProps = (props: any) => {
     exit, 
     transition, 
     variants,
+    layout,
+    layoutId,
     ...rest 
   } = props;
   return rest;
@@ -88,12 +90,21 @@ jest.mock('lucide-react', () => {
     CheckCircle: IconMock,
     XCircle: IconMock,
     Plus: IconMock,
+    Pencil: IconMock,
+    Trash2: IconMock,
     TrendingUp: IconMock,
+    DollarSign: IconMock,
+    RefreshCw: IconMock,
     Package: IconMock,
+    PackageCheck: IconMock,
+    PackageSearch: IconMock,
     Bell: IconMock,
     ShoppingCart: IconMock,
+    Store: IconMock,
     Tag: IconMock,
     CreditCard: IconMock,
+    Wallet: IconMock,
+    WalletCards: IconMock,
     Clock: IconMock,
     Heart: IconMock,
     Star: IconMock,
@@ -108,7 +119,11 @@ jest.mock('lucide-react', () => {
     Shield: IconMock,
     CheckCircle2: IconMock,
     AlertCircle: IconMock,
+    AlertTriangle: IconMock,
+    BadgeCheck: IconMock,
+    Loader2: IconMock,
     Users: IconMock,
+    Truck: IconMock,
     LayoutDashboard: IconMock,
     IdCard: IconMock,
     Phone: IconMock,
@@ -116,6 +131,10 @@ jest.mock('lucide-react', () => {
     HelpCircle: IconMock,
     UserCircle: IconMock,
     Plane: IconMock,
-    History: IconMock
+    History: IconMock,
+    ArrowUpRight: IconMock,
+    ArrowDownRight: IconMock,
+    RotateCcw: IconMock,
+    Minus: IconMock
   };
 });

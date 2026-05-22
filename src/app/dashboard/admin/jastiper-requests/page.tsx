@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ClipboardList, User, Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { UpgradeRequestResponse } from '@/types/api';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { formatShortId } from '@/lib/ids';
 
 interface RawUpgradeRequest {
   id?: string;
@@ -21,9 +23,15 @@ interface RawUpgradeRequest {
   status?: string;
 }
 
+function isPendingRequest(status?: string) {
+  const normalized = status?.toUpperCase() || 'PENDING';
+  return normalized === 'PENDING' || normalized === 'WAITING' || normalized === 'SUBMITTED';
+}
+
 export default function JastiperRequestsPage() {
   const [requests, setRequests] = useState<UpgradeRequestResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingAction, setPendingAction] = useState<{ request: UpgradeRequestResponse; status: 'ACCEPTED' | 'REJECTED' } | null>(null);
 
   useEffect(() => {
     fetchRequests();
@@ -75,23 +83,17 @@ export default function JastiperRequestsPage() {
             fullName: r.fullName || r.full_name || 'No Name',
             credential: r.credential || 'No Credential',
             status: r.status?.toUpperCase() || 'PENDING'
-          }));
+          }))
+          .filter((r: UpgradeRequestResponse) => isPendingRequest(r.status));
 
         console.log('[RequestsPage] Normalized:', normalized.length);
         setRequests(normalized);
       } else {
-        console.warn('[RequestsPage] Fetch failed, using fallback.');
-        // Silent Fallback
-        setRequests([
-          {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
-          {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
-        ]);
+        console.warn('[RequestsPage] Fetch failed.');
+        setRequests([]);
       }
     } catch {
-      setRequests([
-        {"id":"1cdc422d-a5fe-4f89-8ccb-13b42335be51","createdAt":"2026-02-28 05:48:45.457723+00","requesterUserId":"user-aaa","requesterUsername":"aaa","fullName":"aaa aaa aaa","credential":"123aaa","status":"PENDING"},
-        {"id":"2f700614-5098-4332-9511-aaee0f9895f9","createdAt":"2026-02-28 09:31:41.388226+00","requesterUserId":"user-bbb","requesterUsername":"bbb","fullName":"bbb bbb bbb","credential":"456bbb","status":"PENDING"}
-      ]);
+      setRequests([]);
     } finally {
       setIsLoading(false);
     }
@@ -175,7 +177,7 @@ export default function JastiperRequestsPage() {
             ) : requests.map((request) => (
               <motion.div key={request.id} layout initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000] relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-black text-white px-4 py-1 font-black italic text-xs">
-                  ID: {request.id}
+                  ID: <span title={request.id}>{formatShortId(request.id)}</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-2">
                   <div>
@@ -200,14 +202,31 @@ export default function JastiperRequestsPage() {
                   </div>
                 </div>
                 <div className="mt-8 pt-6 border-t-4 border-black flex justify-end gap-4">
-                  <button onClick={() => handleAction(request.id, 'REJECTED')} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 transition-all text-black">REJECT</button>
-                  <button onClick={() => handleAction(request.id, 'ACCEPTED')} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 transition-all text-black">APPROVE</button>
+                  <button onClick={() => setPendingAction({ request, status: 'REJECTED' })} className="bg-pink-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 transition-all text-black">REJECT</button>
+                  <button onClick={() => setPendingAction({ request, status: 'ACCEPTED' })} className="bg-emerald-300 border-4 border-black px-6 py-2 font-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-1 hover:translate-y-1 transition-all text-black">APPROVE</button>
                 </div>
               </motion.div>
             ))}
           </div>
         )}
       </AnimatePresence>
+      <ConfirmModal
+        open={Boolean(pendingAction)}
+        title={pendingAction?.status === 'ACCEPTED' ? 'Approve Request?' : 'Reject Request?'}
+        message={
+          pendingAction?.status === 'ACCEPTED'
+            ? `Approve ${pendingAction.request.requesterUsername} as Jastiper?`
+            : `Reject ${pendingAction?.request.requesterUsername}'s Jastiper request?`
+        }
+        confirmText={pendingAction?.status === 'ACCEPTED' ? 'Approve' : 'Reject'}
+        confirmClassName={pendingAction?.status === 'ACCEPTED' ? 'bg-emerald-400 text-black hover:bg-emerald-500' : 'bg-pink-400 text-white hover:bg-pink-500'}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={async () => {
+          if (!pendingAction) return;
+          await handleAction(pendingAction.request.id, pendingAction.status);
+          setPendingAction(null);
+        }}
+      />
     </div>
   );
 }

@@ -41,7 +41,6 @@ async function proxyRequest(request: Request, pathSegments: string[]) {
     const token = cookieStore.get('auth_token')?.value;
 
     const headers = new Headers();
-    headers.set('Content-Type', 'application/json;charset=UTF-8');
     headers.set('Accept', 'application/json');
     headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
@@ -60,6 +59,7 @@ async function proxyRequest(request: Request, pathSegments: string[]) {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       const bodyText = await request.text();
       if (bodyText) {
+        headers.set('Content-Type', 'application/json;charset=UTF-8');
         options.body = bodyText;
       }
     }
