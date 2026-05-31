@@ -15,7 +15,26 @@ type SearchMode = 'product' | 'jastiper';
 
 function formatDate(value: string) {
   if (!value) return 'No date set';
-  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+  const date = getLocalDateBoundary(value);
+  if (!date) return 'No date set';
+  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+}
+
+function getLocalDateBoundary(value: string) {
+  if (!value) return null;
+  const [datePart] = value.split('T');
+  const parts = datePart.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  const [year, month, day] = parts;
+  return new Date(year, month - 1, day);
+}
+
+function isProductAvailableForWar(product: ProductDTO, today = new Date()) {
+  const tripDate = getLocalDateBoundary(product.purchaseDate);
+  if (!tripDate) return true;
+
+  const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return tripDate >= currentDate;
 }
 
 export default function MarketplacePage() {
@@ -54,15 +73,17 @@ export default function MarketplacePage() {
     loadProducts();
   }, []);
 
+  const availableProducts = useMemo(() => products.filter((product) => isProductAvailableForWar(product)), [products]);
+
   const filteredProducts = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
-    if (!keyword) return products;
+    if (!keyword) return availableProducts;
 
-    return products.filter((product) => {
+    return availableProducts.filter((product) => {
       const value = searchMode === 'product' ? product.name : product.jastiperId;
       return value.toLowerCase().includes(keyword);
     });
-  }, [products, searchMode, searchQuery]);
+  }, [availableProducts, searchMode, searchQuery]);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 text-black">
@@ -75,7 +96,7 @@ export default function MarketplacePage() {
         </div>
         <div className="border-4 border-black bg-white px-5 py-4 shadow-[6px_6px_0px_0px_#000]">
           <p className="text-xs font-black uppercase text-gray-500">Available Products</p>
-          <p className="text-4xl font-black">{products.length}</p>
+          <p className="text-4xl font-black">{availableProducts.length}</p>
         </div>
       </div>
 
@@ -137,6 +158,12 @@ export default function MarketplacePage() {
               event.preventDefault();
               if (!profile?.id) {
                 setError('Please login before checkout');
+                return;
+              }
+
+              if (!isProductAvailableForWar(selectedProduct)) {
+                setSelectedProduct(null);
+                setError('This war session has ended');
                 return;
               }
 
@@ -226,6 +253,13 @@ export default function MarketplacePage() {
         onCancel={() => setIsCheckoutConfirmOpen(false)}
         onConfirm={async () => {
           if (!selectedProduct || !profile?.id) return;
+          if (!isProductAvailableForWar(selectedProduct)) {
+            setIsCheckoutConfirmOpen(false);
+            setSelectedProduct(null);
+            setError('This war session has ended');
+            return;
+          }
+
           const quantity = Number(checkoutForm.quantity);
           setIsCheckingOut(true);
           setError(null);
