@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import { expectJson, getErrorMessage, readJson } from '@/lib/http';
 
 export type OrderStatus = 'PENDING' | 'PAID' | 'PURCHASED' | 'SHIPPED' | 'COMPLETED' | 'DONE' | 'CANCELLED';
 
@@ -38,25 +39,8 @@ export interface RatingPayload {
   productRating: number;
 }
 
-async function readJson<T>(response: Response): Promise<T | null> {
-  const text = await response.text();
-  if (!text) return null;
-  return JSON.parse(text) as T;
-}
-
-async function getErrorMessage(response: Response, fallback: string) {
-  const data = await readJson<{ detail?: string; message?: string; title?: string }>(response).catch(() => null);
-  return data?.detail || data?.message || data?.title || fallback;
-}
-
 async function expectOk<T>(response: Response, fallback: string): Promise<T> {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response, fallback));
-  }
-
-  const data = await readJson<T>(response);
-  if (!data) throw new Error('Backend returned an empty response');
-  return data;
+  return expectJson<T>(response, fallback);
 }
 
 export async function getOrders(): Promise<Order[]> {
