@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import { expectJson, getErrorMessage, readJson } from '@/lib/http';
 
 export type OrderStatus = 'PENDING' | 'PAID' | 'PURCHASED' | 'SHIPPED' | 'COMPLETED' | 'DONE' | 'CANCELLED';
 
@@ -10,7 +11,12 @@ export interface Order {
   quantity: number;
   totalAmount?: number | string | null;
   totalPrice?: number | string | null;
+  total_amount?: number | string | null;
+  total_price?: number | string | null;
   amount?: number | string | null;
+  jastiperIncome?: number | string | null;
+  jastiper_income?: number | string | null;
+  income?: number | string | null;
   shippingAddress: string;
   orderStatus: OrderStatus;
   createdAt: string;
@@ -33,25 +39,8 @@ export interface RatingPayload {
   productRating: number;
 }
 
-async function readJson<T>(response: Response): Promise<T | null> {
-  const text = await response.text();
-  if (!text) return null;
-  return JSON.parse(text) as T;
-}
-
-async function getErrorMessage(response: Response, fallback: string) {
-  const data = await readJson<{ detail?: string; message?: string; title?: string }>(response).catch(() => null);
-  return data?.detail || data?.message || data?.title || fallback;
-}
-
 async function expectOk<T>(response: Response, fallback: string): Promise<T> {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response, fallback));
-  }
-
-  const data = await readJson<T>(response);
-  if (!data) throw new Error('Backend returned an empty response');
-  return data;
+  return expectJson<T>(response, fallback);
 }
 
 export async function getOrders(): Promise<Order[]> {
@@ -155,8 +144,17 @@ export async function markTitiperOrderDone(orderId: string): Promise<Order> {
   return expectOk<Order>(response, 'Failed to confirm order as done');
 }
 
-export function getOrderTotalAmount(order: Pick<Order, 'totalAmount' | 'totalPrice' | 'amount'>) {
-  const raw = order.totalAmount ?? order.totalPrice ?? order.amount ?? 0;
+function toFiniteNumber(raw: number | string | null | undefined): number {
   const value = typeof raw === 'string' ? Number(raw) : raw;
-  return Number.isFinite(value) ? value : 0;
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+export function getOrderTotalAmount(order: Pick<Order, 'totalAmount' | 'totalPrice' | 'total_amount' | 'total_price' | 'amount'>) {
+  const raw = order.totalAmount ?? order.totalPrice ?? order.total_amount ?? order.total_price ?? order.amount ?? 0;
+  return toFiniteNumber(raw);
+}
+
+export function getOrderIncomeAmount(order: Pick<Order, 'jastiperIncome' | 'jastiper_income' | 'income' | 'totalAmount' | 'totalPrice' | 'total_amount' | 'total_price' | 'amount'>) {
+  const raw = order.jastiperIncome ?? order.jastiper_income ?? order.income;
+  return raw == null ? getOrderTotalAmount(order) : toFiniteNumber(raw);
 }

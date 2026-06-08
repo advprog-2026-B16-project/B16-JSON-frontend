@@ -1,51 +1,28 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { forwardAuthRequest, unavailableAuthResponse } from '../authRouteUtils';
 
 export async function POST(request: Request) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-    let targetUrl = `${backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl}/login`;
-    targetUrl = targetUrl.replace('://localhost', '://127.0.0.1');
-    
-    // Read the body once
     const bodyText = await request.text();
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Login] POST ${targetUrl} | Body: ${bodyText}`);
+    const result = await forwardAuthRequest('login', bodyText);
+
+    if (!result.ok) {
+      return NextResponse.json(result.data, { status: result.status });
     }
 
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: bodyText,
-    });
+    const token = typeof result.data.token === 'string' ? result.data.token : '';
+    const role = typeof result.data.role === 'string' ? result.data.role : 'USER';
+    const id = typeof result.data.id === 'string' ? result.data.id : '';
 
-    const contentType = response.headers.get('content-type');
-    let data;
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json().catch(() => ({}));
-    } else {
-      const text = await response.text().catch(() => '');
-      data = { detail: text || 'No response body from backend', message: text };
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Login Response] ${response.status} | Data:`, data);
-    }
-
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-
-    // Backend success - check if we have required fields
-    if (!data.token) {
+    if (!token) {
       console.error('[Login Error] Backend returned success but NO token.');
       return NextResponse.json({ detail: 'Authentication failed: No token received from server' }, { status: 500 });
     }
 
     const cookieStore = await cookies();
     
-    cookieStore.set('auth_token', data.token, {
+    cookieStore.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -53,7 +30,7 @@ export async function POST(request: Request) {
       path: '/',
     });
 
-    cookieStore.set('user_role', data.role || 'USER', {
+    cookieStore.set('user_role', role, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -61,7 +38,7 @@ export async function POST(request: Request) {
       path: '/',
     });
 
-    cookieStore.set('user_id', data.id || '', {
+    cookieStore.set('user_id', id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -69,9 +46,13 @@ export async function POST(request: Request) {
       path: '/',
     });
 
-    return NextResponse.json({ success: true, role: data.role, id: data.id });
+    return NextResponse.json(id ? { success: true, role, id } : { success: true, role });
   } catch (error) {
     console.error('[Login Error]:', error);
+    if (error instanceof TypeError && error.message === 'fetch failed') {
+      return NextResponse.json(unavailableAuthResponse(), { status: 503 });
+    }
+
     return NextResponse.json({ detail: `Internal Server Error: ${error instanceof Error ? error.message : 'Unknown'}` }, { status: 500 });
   }
 }

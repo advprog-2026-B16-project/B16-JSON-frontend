@@ -1,16 +1,6 @@
 import { apiFetch } from '@/lib/api';
+import { expectJson, getErrorMessage, readJson } from '@/lib/http';
 import { RefundRequest, RefundResponse } from '@/types/wallet';
-
-async function readJson<T>(response: Response): Promise<T | null> {
-  const text = await response.text();
-  if (!text) return null;
-  return JSON.parse(text) as T;
-}
-
-async function getErrorMessage(response: Response, fallback: string) {
-  const data = await readJson<{ detail?: string; message?: string; title?: string }>(response).catch(() => null);
-  return data?.detail || data?.message || data?.title || fallback;
-}
 
 export const RefundService = {
   requestRefund: async (data: RefundRequest): Promise<RefundResponse> => {
@@ -23,9 +13,7 @@ export const RefundService = {
       throw new Error(await getErrorMessage(res, 'Failed to request refund'));
     }
 
-    const refund = await readJson<RefundResponse>(res);
-    if (!refund) throw new Error('Refund response was empty');
-    return refund;
+    return expectJson<RefundResponse>(res, 'Failed to request refund');
   },
 
   getMyRefunds: async (): Promise<RefundResponse[]> => {
@@ -33,6 +21,16 @@ export const RefundService = {
 
     if (!res.ok) {
       throw new Error(await getErrorMessage(res, 'Failed to fetch refunds'));
+    }
+
+    return (await readJson<RefundResponse[]>(res)) || [];
+  },
+
+  getMyJastiperRefunds: async (): Promise<RefundResponse[]> => {
+    const res = await apiFetch('/jastiper/refunds/me');
+
+    if (!res.ok) {
+      throw new Error(await getErrorMessage(res, 'Failed to fetch Jastiper refunds'));
     }
 
     return (await readJson<RefundResponse[]>(res)) || [];
@@ -47,8 +45,18 @@ export const RefundService = {
       throw new Error(await getErrorMessage(res, 'Failed to approve refund'));
     }
 
-    const refund = await readJson<RefundResponse>(res);
-    if (!refund) throw new Error('Refund response was empty');
-    return refund;
+    return expectJson<RefundResponse>(res, 'Failed to approve refund');
+  },
+
+  rejectJastiperRefund: async (refundId: string): Promise<RefundResponse> => {
+    const res = await apiFetch(`/jastiper/refunds/${refundId}/reject`, {
+      method: 'PATCH',
+    });
+
+    if (!res.ok) {
+      throw new Error(await getErrorMessage(res, 'Failed to reject refund'));
+    }
+
+    return expectJson<RefundResponse>(res, 'Failed to reject refund');
   },
 };

@@ -1,16 +1,6 @@
 import { apiFetch } from '@/lib/api';
+import { expectJson, getErrorMessage, readJson } from '@/lib/http';
 import { ProductDTO, ProductRequest } from '@/types/api';
-
-async function readJson<T>(response: Response): Promise<T | null> {
-  const text = await response.text();
-  if (!text) return null;
-  return JSON.parse(text) as T;
-}
-
-async function getErrorMessage(response: Response, fallback: string) {
-  const data = await readJson<{ detail?: string; message?: string; title?: string }>(response).catch(() => null);
-  return data?.detail || data?.message || data?.title || fallback;
-}
 
 export async function getProducts() {
   const response = await apiFetch('/products', { cache: 'no-store' });
@@ -31,9 +21,7 @@ export async function createProduct(payload: ProductRequest) {
     throw new Error(await getErrorMessage(response, 'Failed to create product'));
   }
 
-  const data = await readJson<ProductDTO>(response);
-  if (!data) throw new Error('Product response was empty');
-  return data;
+  return expectJson<ProductDTO>(response, 'Failed to create product');
 }
 
 export async function updateProduct(id: string, payload: ProductRequest) {
@@ -46,9 +34,7 @@ export async function updateProduct(id: string, payload: ProductRequest) {
     throw new Error(await getErrorMessage(response, 'Failed to update product'));
   }
 
-  const data = await readJson<ProductDTO>(response);
-  if (!data) throw new Error('Product response was empty');
-  return data;
+  return expectJson<ProductDTO>(response, 'Failed to update product');
 }
 
 export async function deleteProduct(id: string) {
@@ -71,7 +57,5 @@ export async function reduceProductStock(id: string, quantity: number) {
     throw new Error(await getErrorMessage(response, 'Failed to reserve product stock'));
   }
 
-  const data = await readJson<ProductDTO>(response);
-  if (!data) throw new Error('Stock response was empty');
-  return data;
+  return expectJson<ProductDTO>(response, 'Failed to reserve product stock');
 }

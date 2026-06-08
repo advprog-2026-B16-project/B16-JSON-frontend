@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { readJson } from '@/lib/http';
 import { ProfileResponseDTO, ProblemDetail } from '@/types/api';
 
 type ProfileActionResult =
@@ -10,17 +11,6 @@ type ProfileActionResult =
 function getBackendUrl() {
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
   return (backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl).replace('://localhost', '://127.0.0.1');
-}
-
-async function readJson<T>(response: Response): Promise<T | null> {
-  const text = await response.text();
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return null;
-  }
 }
 
 function getErrorMessage(data: ProblemDetail | null, fallback: string) {
@@ -82,7 +72,7 @@ export async function updateProfile(formData: FormData): Promise<ProfileActionRe
       JSON.stringify({ fullName, bio, location })
     );
 
-    const data = await readJson<ProblemDetail>(response);
+    const data = await readJson<ProblemDetail>(response).catch(() => null);
 
     if (!response.ok) {
       return { success: false, error: getErrorMessage(data, 'Failed to update profile') };
@@ -105,7 +95,7 @@ export async function getProfile(): Promise<ProfileActionResult> {
   try {
     const response = await fetchProfileFromBackend(backendUrl, token);
 
-    const data = await readJson<ProfileResponseDTO | ProblemDetail>(response);
+    const data = await readJson<ProfileResponseDTO | ProblemDetail>(response).catch(() => null);
 
     if (!response.ok) {
       return { success: false, error: getErrorMessage(data as ProblemDetail | null, 'Failed to fetch profile') };
