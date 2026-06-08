@@ -8,14 +8,6 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
-// Mock apiFetch from lib/api
-jest.mock('../../lib/api', () => ({
-  apiFetch: jest.fn((endpoint, options) => {
-    const prefixedEndpoint = `/api/proxy${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-    return global.fetch(prefixedEndpoint, options);
-  }),
-}));
-
 describe('Authentication Pages', () => {
   const mockPush = jest.fn();
   const validPassword = 'Password123!';
@@ -210,7 +202,7 @@ describe('Authentication Pages', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('submits registration data to proxy route', async () => {
+    it('submits registration data to internal auth route', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -227,9 +219,10 @@ describe('Authentication Pages', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/proxy/register',
+          '/api/auth/register',
           expect.objectContaining({
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               username: 'testuser',
               email: 'test@example.com',

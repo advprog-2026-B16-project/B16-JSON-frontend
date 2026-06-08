@@ -1,15 +1,25 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import Page from '../page';
 import { getProfile } from '../../settings/actions';
-import { getMyJastiperOrders, type Order, updateOrderStatus } from '../orderApi';
+import { getMyJastiperOrders, markJastiperOrderShipped, type Order, updateOrderStatus } from '../orderApi';
 
 jest.mock('../../settings/actions', () => ({
   getProfile: jest.fn(),
 }));
 
+jest.mock('../../../../hooks/refund/useRefunds', () => ({
+  useRefunds: () => ({
+    refunds: [],
+    actionLoading: false,
+    error: '',
+    success: '',
+    approveRefund: jest.fn(),
+  }),
+}));
+
 jest.mock('../orderApi', () => ({
   getMyJastiperOrders: jest.fn(),
-  getOrderTotalAmount: jest.fn((order) => Number(order.totalAmount ?? order.totalPrice ?? order.amount ?? 0)),
+  getOrderTotalAmount: jest.fn((order) => Number(order.totalAmount ?? order.totalPrice ?? order.total_amount ?? order.total_price ?? order.amount ?? 0)),
   updateOrderStatus: jest.fn(),
   markJastiperOrderShipped: jest.fn(),
   markJastiperOrderCompleted: jest.fn(),
@@ -91,6 +101,39 @@ describe('Orders Page', () => {
       expect(updateOrderStatus).toHaveBeenCalledWith('order-001', 'PURCHASED');
     });
     expect(await screen.findByText(/Order moved to Purchased/i)).toBeInTheDocument();
+  });
+
+  it('keeps total visible when shipped update response omits amount fields', async () => {
+    const purchasedOrder: Order = {
+      orderId: 'order-ship-001',
+      productId: 'prod-ship-123',
+      titipersId: 'user-titipers-01',
+      jastiperId: 'jastiper-1',
+      quantity: 1,
+      totalPrice: 750000,
+      shippingAddress: 'Jakarta',
+      orderStatus: 'PURCHASED',
+      createdAt: '2026-06-01T10:00:00',
+    };
+
+    (getMyJastiperOrders as jest.Mock).mockResolvedValue([purchasedOrder]);
+    (markJastiperOrderShipped as jest.Mock).mockResolvedValue({
+      ...purchasedOrder,
+      totalPrice: undefined,
+      orderStatus: 'SHIPPED',
+    });
+
+    render(<Page />);
+
+    expect(await screen.findByText(/Total: \$750K/i)).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByText(/Mark Shipped/i));
+    fireEvent.click(await screen.findByText('Update'));
+
+    await waitFor(() => {
+      expect(markJastiperOrderShipped).toHaveBeenCalledWith('order-ship-001');
+    });
+    expect(await screen.findByText(/Total: \$750K/i)).toBeInTheDocument();
   });
 
   it('shows access gate for non-Jastipers', async () => {

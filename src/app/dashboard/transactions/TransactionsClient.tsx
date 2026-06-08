@@ -47,12 +47,15 @@ function orderStatusColor(status?: OrderStatus) {
 export default function TransactionsClient() {
   const router = useRouter();
   const { payments, isLoading, error, fetchPayments } = usePayments();
-  const { refunds } = useRefunds();
+  const { refunds, isLoading: refundsLoading, fetchRefunds } = useRefunds();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [ordersById, setOrdersById] = useState<Record<string, Order>>({});
   const [doneTarget, setDoneTarget] = useState<Order | null>(null);
   const [isConfirmingDone, setIsConfirmingDone] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isOrdersLoading, setIsOrdersLoading] = useState(false);
+  const [orderRefreshNonce, setOrderRefreshNonce] = useState(0);
   const [actionError, setActionError] = useState('');
 
   const orderIds = useMemo(
@@ -63,6 +66,24 @@ export default function TransactionsClient() {
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    setIsOrdersLoading(true);
+    setActionError('');
+    setOrdersById({});
+    setNow(Date.now());
+
+    try {
+      await Promise.all([fetchPayments(), fetchRefunds()]);
+      setOrderRefreshNonce((current) => current + 1);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to refresh transactions');
+      setIsOrdersLoading(false);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   async function handleConfirmDone() {
     if (!doneTarget) return;
@@ -85,11 +106,19 @@ export default function TransactionsClient() {
   }, []);
 
   useEffect(() => {
-    const missingOrderIds = orderIds.filter((orderId) => !ordersById[orderId]);
-    if (missingOrderIds.length === 0) return;
+    const shouldRefreshAllOrders = orderRefreshNonce > 0;
+    const targetOrderIds = shouldRefreshAllOrders
+      ? orderIds
+      : orderIds.filter((orderId) => !ordersById[orderId]);
+
+    if (targetOrderIds.length === 0) {
+      setIsOrdersLoading(false);
+      return;
+    }
 
     let isMounted = true;
-    Promise.allSettled(missingOrderIds.map((orderId) => getOrderById(orderId))).then((results) => {
+    setIsOrdersLoading(true);
+    Promise.allSettled(targetOrderIds.map((orderId) => getOrderById(orderId))).then((results) => {
       if (!isMounted) return;
 
       setOrdersById((current) => {
@@ -101,12 +130,15 @@ export default function TransactionsClient() {
         });
         return next;
       });
+      setIsOrdersLoading(false);
     });
 
     return () => {
       isMounted = false;
     };
-  }, [orderIds, ordersById]);
+  }, [orderIds, orderRefreshNonce]);
+
+  const isTransactionLoading = isLoading || refundsLoading || isRefreshing || isOrdersLoading;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 text-black">
@@ -118,12 +150,12 @@ export default function TransactionsClient() {
           </p>
         </div>
         <button
-          onClick={fetchPayments}
-          disabled={isLoading}
+          onClick={handleRefresh}
+          disabled={isTransactionLoading}
           className="p-3 border-4 border-black hover:bg-gray-100 disabled:opacity-50 transition-colors shadow-[4px_4px_0px_0px_#000] active:shadow-none active:translate-x-1 active:translate-y-1 bg-white"
           title="Refresh transactions"
         >
-          <RefreshCw size={24} className={isLoading ? "animate-spin" : ""} />
+          <RefreshCw size={24} className={isTransactionLoading ? "animate-spin" : ""} />
         </button>
       </div>
 
@@ -141,7 +173,16 @@ export default function TransactionsClient() {
 
       <div className="space-y-6">
         <AnimatePresence>
-          {payments.length === 0 && !isLoading ? (
+          {isTransactionLoading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center gap-3 p-12 border-4 border-black bg-white shadow-[12px_12px_0px_0px_#000] text-center"
+            >
+              <RefreshCw size={28} className="animate-spin text-green-600" />
+              <p className="text-2xl font-black uppercase italic text-gray-700">Loading transactions...</p>
+            </motion.div>
+          ) : payments.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 

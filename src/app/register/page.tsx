@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { UserPlus, LogIn, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
 import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 
 export default function RegisterPage() {
@@ -46,8 +45,9 @@ export default function RegisterPage() {
 
     try {
       // Postman confirmed: username, email, password, confirmPassword are required
-      const response = await apiFetch('/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 

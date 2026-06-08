@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import { getErrorMessage } from '@/lib/http';
 import { PaymentRequest, PaymentResponse } from '@/types/wallet';
 
 export const PaymentService = {
@@ -9,7 +10,7 @@ export const PaymentService = {
     });
 
     if (!res.ok) {
-      throw new Error('Failed to create payment');
+      throw new Error(await getErrorMessage(res, 'Failed to create payment'));
     }
 
     return await res.json();
@@ -21,7 +22,7 @@ export const PaymentService = {
     });
 
     if (!res.ok) {
-      throw new Error('Failed to complete payment');
+      throw new Error(await getErrorMessage(res, 'Failed to complete payment'));
     }
 
     return await res.json();
@@ -33,7 +34,7 @@ export const PaymentService = {
     });
 
     if (!res.ok) {
-      throw new Error('Failed to cancel payment');
+      throw new Error(await getErrorMessage(res, 'Failed to cancel payment'));
     }
 
     return await res.json();
@@ -43,7 +44,7 @@ export const PaymentService = {
     const res = await apiFetch('/payments/me');
 
     if (!res.ok) {
-      throw new Error('Failed to fetch payments');
+      throw new Error(await getErrorMessage(res, 'Failed to fetch payments'));
     }
 
     return await res.json();

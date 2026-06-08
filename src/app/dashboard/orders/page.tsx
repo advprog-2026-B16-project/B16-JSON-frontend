@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ClipboardList, DollarSign, Loader2, MapPin, PackageCheck, ShieldCheck, ShoppingCart, TrendingUp, Truck, XCircle } from 'lucide-react';
+import { AlertCircle, ClipboardList, Loader2, MapPin, PackageCheck, ShieldCheck, ShoppingCart, Truck, XCircle } from 'lucide-react';
 import { getProfile } from '../settings/actions';
 import {
   cancelOrder,
@@ -39,10 +39,24 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
 
 const TODO_STATUSES: OrderStatus[] = ['PAID', 'PURCHASED', 'SHIPPED', 'COMPLETED'];
 
-function formatCurrency(value?: number | string | null) {
-  if (value == null) return 'N/A';
-  const numericValue = typeof value === 'string' ? Number(value) : value;
-  return formatCompactDollar(Number.isFinite(numericValue) ? numericValue : 0);
+function formatOrderTotal(order: Order) {
+  const total = getOrderTotalAmount(order);
+  return total > 0 ? formatCompactDollar(total) : 'N/A';
+}
+
+function mergeOrderUpdate(current: Order, updated: Order) {
+  const merged = { ...current, ...updated };
+  return {
+    ...merged,
+    totalAmount: updated.totalAmount ?? current.totalAmount,
+    totalPrice: updated.totalPrice ?? current.totalPrice,
+    total_amount: updated.total_amount ?? current.total_amount,
+    total_price: updated.total_price ?? current.total_price,
+    amount: updated.amount ?? current.amount,
+    jastiperIncome: updated.jastiperIncome ?? current.jastiperIncome,
+    jastiper_income: updated.jastiper_income ?? current.jastiper_income,
+    income: updated.income ?? current.income,
+  };
 }
 
 function formatDateTime(value?: string | null) {
@@ -67,6 +81,7 @@ export default function OrdersPage() {
     | { type: 'status'; orderId: string; status: OrderStatus }
     | { type: 'cancel'; orderId: string }
     | { type: 'approve-refund'; refundId: string }
+    | { type: 'reject-refund'; refundId: string }
     | null
   >(null);
   const {
@@ -75,11 +90,15 @@ export default function OrdersPage() {
     error: refundError,
     success: refundSuccess,
     approveRefund,
-  } = useRefunds();
+    rejectRefund,
+    clearAlerts: clearRefundAlerts = () => {},
+  } = useRefunds('jastiper');
 
   async function loadOrders() {
     setIsLoading(true);
     setError(null);
+    setMessage(null);
+    clearRefundAlerts();
 
     try {
       const profileResult = await getProfile();
@@ -114,12 +133,6 @@ export default function OrdersPage() {
       shipped: orders.filter((order) => order.orderStatus === 'SHIPPED').length,
       completed: orders.filter((order) => order.orderStatus === 'COMPLETED').length,
       done: orders.filter((order) => order.orderStatus === 'DONE').length,
-      totalIncome: orders
-        .filter((order) => order.orderStatus === 'DONE')
-        .reduce((sum, order) => sum + getOrderTotalAmount(order), 0),
-      activeValue: orders
-        .filter((order) => TODO_STATUSES.includes(order.orderStatus))
-        .reduce((sum, order) => sum + getOrderTotalAmount(order), 0),
     };
   }, [orders]);
 
@@ -134,7 +147,7 @@ export default function OrdersPage() {
         : status === 'COMPLETED'
           ? await markJastiperOrderCompleted(orderId)
           : await updateOrderStatus(orderId, status);
-      setOrders((current) => current.map((order) => (order.orderId === orderId ? updated : order)));
+      setOrders((current) => current.map((order) => (order.orderId === orderId ? mergeOrderUpdate(order, updated) : order)));
       setMessage(`Order moved to ${ORDER_STATUS_LABEL[status]}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update order status');
@@ -150,7 +163,7 @@ export default function OrdersPage() {
 
     try {
       const updated = await cancelOrder(orderId, 'Physical store stock is unavailable');
-      setOrders((current) => current.map((order) => (order.orderId === orderId ? updated : order)));
+      setOrders((current) => current.map((order) => (order.orderId === orderId ? mergeOrderUpdate(order, updated) : order)));
       setMessage('Order cancelled and refund process requested');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to cancel order');
@@ -163,7 +176,20 @@ export default function OrdersPage() {
     setError(null);
     setMessage(null);
     const ok = await approveRefund(refundId);
-    if (ok) setMessage('Refund approved and buyer wallet credited');
+    if (ok) {
+      await loadOrders();
+      setMessage('Refund approved and buyer wallet credited');
+    }
+  }
+
+  async function handleRejectRefund(refundId: string) {
+    setError(null);
+    setMessage(null);
+    const ok = await rejectRefund(refundId);
+    if (ok) {
+      await loadOrders();
+      setMessage('Refund rejected and funds released to Jastiper');
+    }
   }
 
   if (isLoading) {
@@ -222,9 +248,7 @@ export default function OrdersPage() {
         </div>
       ) : (
         <>
-          <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-6">
-            <MetricCard icon={<DollarSign size={40} />} title="Total Income" value={formatCompactDollar(counts.totalIncome)} color="bg-green-100" />
-            <MetricCard icon={<TrendingUp size={40} />} title="Active Value" value={formatCompactDollar(counts.activeValue)} color="bg-cyan-100" />
+          <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-4">
             <MetricCard icon={<ClipboardList size={40} />} title="To-Do Orders" value={counts.todo.toString()} color="bg-yellow-100" />
             <MetricCard icon={<Truck size={40} />} title="On Delivery" value={counts.shipped.toString()} color="bg-purple-100" />
             <MetricCard icon={<PackageCheck size={40} />} title="Delivered" value={counts.completed.toString()} color="bg-green-100" />
@@ -250,6 +274,7 @@ export default function OrdersPage() {
                   onRequestStatusChange={(orderId, status) => setPendingAction({ type: 'status', orderId, status })}
                   onCancel={(orderId) => setPendingAction({ type: 'cancel', orderId })}
                   onApproveRefund={(refundId) => setPendingAction({ type: 'approve-refund', refundId })}
+                  onRejectRefund={(refundId) => setPendingAction({ type: 'reject-refund', refundId })}
                 />
               ))
             )}
@@ -258,16 +283,26 @@ export default function OrdersPage() {
       )}
       <ConfirmModal
         open={Boolean(pendingAction)}
-        title={pendingAction?.type === 'cancel' ? 'Cancel Order?' : pendingAction?.type === 'approve-refund' ? 'Approve Refund?' : 'Update Order Status?'}
+        title={
+          pendingAction?.type === 'cancel'
+            ? 'Cancel Order?'
+            : pendingAction?.type === 'approve-refund'
+              ? 'Approve Refund?'
+              : pendingAction?.type === 'reject-refund'
+                ? 'Reject Refund?'
+                : 'Update Order Status?'
+        }
         message={
           pendingAction?.type === 'cancel'
             ? 'This will cancel the order and trigger the refund process.'
             : pendingAction?.type === 'approve-refund'
               ? 'This will debit your wallet and return funds to the buyer.'
+            : pendingAction?.type === 'reject-refund'
+              ? 'This will reject the buyer refund request.'
             : `Move this order to ${pendingAction ? ORDER_STATUS_LABEL[pendingAction.status] : 'the next status'}?`
         }
-        confirmText={pendingAction?.type === 'cancel' ? 'Cancel Order' : pendingAction?.type === 'approve-refund' ? 'Approve Refund' : 'Update'}
-        confirmClassName={pendingAction?.type === 'cancel' ? 'bg-red-400 text-white hover:bg-red-500' : pendingAction?.type === 'approve-refund' ? 'bg-emerald-400 text-black hover:bg-emerald-500' : 'bg-purple-400 text-white hover:bg-purple-500'}
+        confirmText={pendingAction?.type === 'cancel' ? 'Cancel Order' : pendingAction?.type === 'approve-refund' ? 'Approve Refund' : pendingAction?.type === 'reject-refund' ? 'Reject Refund' : 'Update'}
+        confirmClassName={pendingAction?.type === 'cancel' || pendingAction?.type === 'reject-refund' ? 'bg-red-400 text-white hover:bg-red-500' : pendingAction?.type === 'approve-refund' ? 'bg-emerald-400 text-black hover:bg-emerald-500' : 'bg-purple-400 text-white hover:bg-purple-500'}
         isLoading={Boolean(actionOrderId) || refundActionLoading}
         onCancel={() => setPendingAction(null)}
         onConfirm={async () => {
@@ -276,6 +311,8 @@ export default function OrdersPage() {
             await handleCancel(pendingAction.orderId);
           } else if (pendingAction.type === 'approve-refund') {
             await handleApproveRefund(pendingAction.refundId);
+          } else if (pendingAction.type === 'reject-refund') {
+            await handleRejectRefund(pendingAction.refundId);
           } else {
             await handleStatusChange(pendingAction.orderId, pendingAction.status);
           }
@@ -303,6 +340,7 @@ function OrderCard({
   onRequestStatusChange,
   onCancel,
   onApproveRefund,
+  onRejectRefund,
 }: {
   order: Order;
   actionOrderId: string | null;
@@ -310,6 +348,7 @@ function OrderCard({
   onRequestStatusChange: (orderId: string, status: OrderStatus) => void;
   onCancel: (orderId: string) => void;
   onApproveRefund: (refundId: string) => void;
+  onRejectRefund: (refundId: string) => void;
 }) {
   const nextStatus = NEXT_STATUS[order.orderStatus];
   const canCancel = !['CANCELLED', 'COMPLETED', 'DONE'].includes(order.orderStatus);
@@ -327,7 +366,7 @@ function OrderCard({
           <p className="max-w-[520px] truncate font-bold text-gray-700" title={order.productId}>Product: {formatShortId(order.productId)}</p>
           <p className="max-w-[520px] truncate font-bold text-gray-700" title={order.titipersId}>Titiper: {formatShortId(order.titipersId)}</p>
           <p className="font-bold text-gray-700">Quantity: {order.quantity}</p>
-          <p className="max-w-[520px] truncate font-bold text-gray-700" title={formatCurrency(order.totalAmount)}>Total: {formatCurrency(order.totalAmount)}</p>
+          <p className="max-w-[520px] truncate font-bold text-gray-700" title={formatOrderTotal(order)}>Total: {formatOrderTotal(order)}</p>
           <div className="flex items-start gap-2 font-bold text-gray-700">
             <MapPin size={16} className="mt-1" />
             <span>{order.shippingAddress}</span>
@@ -355,12 +394,20 @@ function OrderCard({
             <p className="font-black uppercase">{getRefundStatusLabel(refund.status)}</p>
             {refund.reason && <p className="mt-2 text-sm font-bold text-gray-700">&quot;{refund.reason}&quot;</p>}
             {pendingRefund && order.orderStatus === 'COMPLETED' && (
-              <button
-                onClick={() => onApproveRefund(pendingRefund.id)}
-                className="mt-4 w-full border-4 border-black bg-emerald-300 px-4 py-3 font-black uppercase shadow-[4px_4px_0px_0px_#000] hover:bg-emerald-400"
-              >
-                Approve Refund
-              </button>
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                <button
+                  onClick={() => onApproveRefund(pendingRefund.id)}
+                  className="w-full border-4 border-black bg-emerald-300 px-4 py-3 font-black uppercase shadow-[4px_4px_0px_0px_#000] hover:bg-emerald-400"
+                >
+                  Approve Refund
+                </button>
+                <button
+                  onClick={() => onRejectRefund(pendingRefund.id)}
+                  className="w-full border-4 border-black bg-red-300 px-4 py-3 font-black uppercase shadow-[4px_4px_0px_0px_#000] hover:bg-red-400"
+                >
+                  Reject Refund
+                </button>
+              </div>
             )}
           </div>
         )}
