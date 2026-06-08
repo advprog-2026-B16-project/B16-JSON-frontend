@@ -9,6 +9,7 @@ import { getOrderById, updateOrderStatus, type Order } from '../../orders/orderA
 import { formatCompactDollar, formatDollar } from '@/lib/currency';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { formatShortId } from '@/lib/ids';
+import { getPaymentTimeMs, isPaymentExpired } from '@/lib/paymentTime';
 
 type PaymentMethod = 'wallet' | 'external';
 
@@ -30,8 +31,8 @@ export default function PaymentDetailPage() {
     () => payments.find((item) => item.referenceCode === referenceCode),
     [payments, referenceCode],
   );
-  const expiresAt = payment?.expiresAt ? new Date(payment.expiresAt).getTime() : 0;
-  const isClientExpired = Boolean(payment?.status === 'PENDING' && expiresAt && now >= expiresAt);
+  const expiresAt = getPaymentTimeMs(payment?.expiresAt);
+  const isClientExpired = Boolean(payment?.status === 'PENDING' && isPaymentExpired(payment.expiresAt, now));
   const canPay = Boolean(payment?.status === 'PENDING' && !isClientExpired);
   const remainingMs = Math.max(0, expiresAt - now);
 
