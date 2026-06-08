@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+function maskLoginBody(bodyText: string) {
+  try {
+    const data = JSON.parse(bodyText);
+    if (data && typeof data === 'object' && 'password' in data) {
+      return JSON.stringify({ ...data, password: '***' });
+    }
+  } catch {
+    return bodyText;
+  }
+
+  return bodyText;
+}
+
 export async function POST(request: Request) {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -11,7 +24,7 @@ export async function POST(request: Request) {
     const bodyText = await request.text();
     
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Login] POST ${targetUrl} | Body: ${bodyText}`);
+      console.log(`[Login] POST ${targetUrl} | Body: ${maskLoginBody(bodyText)}`);
     }
 
     const response = await fetch(targetUrl, {
@@ -72,6 +85,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, role: data.role, id: data.id });
   } catch (error) {
     console.error('[Login Error]:', error);
+    if (error instanceof TypeError && error.message === 'fetch failed') {
+      return NextResponse.json({
+        detail: 'Backend authentication service is unavailable. Make sure the backend is running on port 8080.',
+      }, { status: 503 });
+    }
+
     return NextResponse.json({ detail: `Internal Server Error: ${error instanceof Error ? error.message : 'Unknown'}` }, { status: 500 });
   }
 }

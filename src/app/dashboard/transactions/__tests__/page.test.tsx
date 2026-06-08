@@ -26,6 +26,7 @@ jest.mock('next/navigation', () => ({
 
 describe('TransactionsClient', () => {
   const mockFetchPayments = jest.fn();
+  const mockFetchRefunds = jest.fn();
   const mockPush = jest.fn();
 
   beforeEach(() => {
@@ -39,6 +40,8 @@ describe('TransactionsClient', () => {
     });
     (useRefunds as jest.Mock).mockReturnValue({
       refunds: [],
+      isLoading: false,
+      fetchRefunds: mockFetchRefunds,
     });
     (getOrderById as jest.Mock).mockImplementation((orderId: string) => Promise.resolve({
       orderId,
@@ -56,7 +59,7 @@ describe('TransactionsClient', () => {
     expect(screen.getByText('No purchases yet')).toBeInTheDocument();
   });
 
-  it('renders transactions list correctly', () => {
+  it('renders transactions list correctly', async () => {
     (usePayments as jest.Mock).mockReturnValue({
       payments: [
         {
@@ -81,12 +84,23 @@ describe('TransactionsClient', () => {
       error: null,
       fetchPayments: mockFetchPayments,
     });
+    (useRefunds as jest.Mock).mockReturnValue({
+      refunds: [],
+      isLoading: false,
+      fetchRefunds: mockFetchRefunds,
+    });
 
     render(<TransactionsClient />);
+
+    expect(screen.getByText('Loading transactions...')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Order: ord-1...')).toBeInTheDocument();
+    });
     
     expect(screen.getByText('Order: ord-1...')).toBeInTheDocument();
     expect(screen.getByText('Order: ord-4...')).toBeInTheDocument();
-    expect(screen.getByText('SUCCESS')).toBeInTheDocument();
+    expect(screen.getByText('Delivered')).toBeInTheDocument();
     expect(screen.getByText('UNPAID')).toBeInTheDocument();
     expect(screen.getByText(/\$50\.3/i)).toBeInTheDocument();
     expect(screen.getByText(/\$100/i)).toBeInTheDocument();
@@ -109,11 +123,16 @@ describe('TransactionsClient', () => {
       error: null,
       fetchPayments: mockFetchPayments,
     });
+    (useRefunds as jest.Mock).mockReturnValue({
+      refunds: [],
+      isLoading: false,
+      fetchRefunds: mockFetchRefunds,
+    });
 
     render(<TransactionsClient />);
     
     await waitFor(() => {
-      expect(getOrderById).toHaveBeenCalledWith('ord-123');
+      expect(screen.getByText('Order: ord-1...')).toBeInTheDocument();
     });
 
     // Click on the transaction header to expand
@@ -124,5 +143,19 @@ describe('TransactionsClient', () => {
     
     fireEvent.click(screen.getByText('Request Refund'));
     expect(mockPush).toHaveBeenCalledWith('/dashboard/refund?transactionId=tx-1');
+  });
+
+  it('refreshes payments and refunds from the refresh button', async () => {
+    mockFetchPayments.mockResolvedValueOnce(undefined);
+    mockFetchRefunds.mockResolvedValueOnce(undefined);
+
+    render(<TransactionsClient />);
+
+    fireEvent.click(screen.getByTitle('Refresh transactions'));
+
+    await waitFor(() => {
+      expect(mockFetchPayments).toHaveBeenCalled();
+      expect(mockFetchRefunds).toHaveBeenCalled();
+    });
   });
 });

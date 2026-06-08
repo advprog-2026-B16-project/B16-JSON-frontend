@@ -41,6 +41,8 @@ export default function OrderDetailPage() {
     return !item.expiresAt || Date.now() < new Date(item.expiresAt).getTime();
   });
   const expiredPayment = payments.find((item) => item.orderId === orderId && item.status === 'PENDING' && item.expiresAt && Date.now() >= new Date(item.expiresAt).getTime());
+  const cancelledPayment = payments.find((item) => item.orderId === orderId && item.status === 'CANCELLED');
+  const paymentLocked = Boolean(order?.orderStatus === 'CANCELLED' || expiredPayment);
   const product = useMemo(
     () => products.find((item) => item.id === order?.productId) || null,
     [products, order?.productId],
@@ -70,7 +72,7 @@ export default function OrderDetailPage() {
   }, [orderId]);
 
   async function handleProceedPayment() {
-    if (!order) return;
+    if (!order || paymentLocked) return;
     setIsProceeding(true);
     setError('');
     try {
@@ -169,14 +171,18 @@ export default function OrderDetailPage() {
             <h2 className="text-2xl font-black uppercase">Next Step</h2>
           </div>
           <p className="mb-5 text-sm font-bold text-gray-700">
-            {activePayment
+            {order.orderStatus === 'CANCELLED'
+              ? 'This order has been cancelled and cannot continue to payment.'
+              : activePayment
               ? `Payment ${activePayment.referenceCode} already exists with ${activePayment.status === 'PENDING' ? 'UNPAID' : activePayment.status} status.`
               : expiredPayment
-                ? `Previous payment expired. Create a fresh unpaid transaction for ${formatCompactDollar(totalAmount)}.`
+                ? 'Previous payment expired. Refresh this page after the backend cancels the order.'
+              : cancelledPayment
+                ? `Previous payment ${cancelledPayment.referenceCode} was cancelled. Create a fresh unpaid transaction for ${formatCompactDollar(totalAmount)}.`
               : `Create an unpaid transaction for ${formatCompactDollar(totalAmount)}.`}
           </p>
           <button
-            disabled={isProceeding || paymentsLoading}
+            disabled={isProceeding || paymentsLoading || paymentLocked}
             onClick={() => setIsProceedConfirmOpen(true)}
             className="flex w-full items-center justify-center gap-2 border-4 border-black bg-black px-5 py-4 text-lg font-black uppercase text-white shadow-[4px_4px_0px_0px_#000] hover:bg-green-400 hover:text-black disabled:opacity-60"
           >
@@ -188,7 +194,15 @@ export default function OrderDetailPage() {
       <ConfirmModal
         open={isProceedConfirmOpen}
         title="Proceed to Payment?"
-        message={activePayment ? 'Open your existing payment transaction.' : `Create an unpaid transaction for ${formatDollar(totalAmount)}.`}
+        message={
+          order.orderStatus === 'CANCELLED'
+            ? 'This order has been cancelled and cannot continue to payment.'
+            : expiredPayment
+              ? 'Previous payment expired. This order is no longer payable.'
+            : activePayment
+              ? 'Open your existing payment transaction.'
+              : `Create an unpaid transaction for ${formatDollar(totalAmount)}.`
+        }
         confirmText="Proceed"
         confirmClassName="bg-green-400 text-black hover:bg-green-500"
         isLoading={isProceeding}
