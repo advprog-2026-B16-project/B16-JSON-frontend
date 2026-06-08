@@ -13,9 +13,10 @@ import { getOrderById, markTitiperOrderDone, type Order, type OrderStatus } from
 import { ORDER_STATUS_DESCRIPTION, ORDER_STATUS_LABEL } from '@/lib/orderStatus';
 import { getRefundStatusDescription, getRefundStatusLabel } from '@/lib/refundStatus';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { getPaymentTimeMs, isPaymentExpired } from '@/lib/paymentTime';
 
 function getEffectiveStatus(payment: PaymentResponse, now: number) {
-  if (payment.status === 'PENDING' && payment.expiresAt && now >= new Date(payment.expiresAt).getTime()) {
+  if (payment.status === 'PENDING' && isPaymentExpired(payment.expiresAt, now)) {
     return 'EXPIRED' as const;
   }
 
@@ -193,7 +194,7 @@ export default function TransactionsClient() {
               <p className="mt-2 font-bold text-gray-600">You haven&apos;t made any transactions.</p>
             </motion.div>
           ) : (
-            [...payments].sort((a, b) => new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime()).map((payment) => {
+            [...payments].sort((a, b) => getPaymentTimeMs(b.expiresAt) - getPaymentTimeMs(a.expiresAt)).map((payment) => {
               const effectiveStatus = getEffectiveStatus(payment, now);
               const order = ordersById[payment.orderId];
               const refund = refunds.find((item) => item.originalTransactionId === payment.transactionId);

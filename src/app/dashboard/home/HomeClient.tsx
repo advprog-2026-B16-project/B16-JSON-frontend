@@ -21,6 +21,7 @@ import { getOrderById, type Order, type OrderStatus } from '@/app/dashboard/orde
 import { ORDER_STATUS_DESCRIPTION, ORDER_STATUS_LABEL } from '@/lib/orderStatus';
 import { useRefunds } from '@/hooks/refund/useRefunds';
 import { getRefundStatusLabel } from '@/lib/refundStatus';
+import { getPaymentTimeMs } from '@/lib/paymentTime';
 
 function displayPaymentStatus(status: PaymentResponse['status']) {
   return status === 'PENDING' ? 'UNPAID' : status;
@@ -60,7 +61,7 @@ export default function HomeClient({ initialUserId }: { initialUserId: string })
   const activeOrders = Object.values(ordersById).filter((order) => ['PAID', 'PURCHASED', 'SHIPPED', 'COMPLETED'].includes(order.orderStatus)).length;
 
   const recentPurchases = [...payments]
-    .sort((a, b) => new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime())
+    .sort((a, b) => getPaymentTimeMs(b.expiresAt) - getPaymentTimeMs(a.expiresAt))
     .slice(0, 5);
   const orderIds = useMemo(
     () => Array.from(new Set(recentPurchases.map((payment) => payment.orderId).filter(Boolean))),
