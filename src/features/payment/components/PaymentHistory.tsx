@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, CreditCard, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { formatDollar } from '@/lib/currency';
 import { formatShortId } from '@/lib/ids';
+import { getPaymentTimeMs } from '@/lib/paymentTime';
 
 interface Props {
   payments: PaymentResponse[];
@@ -62,7 +63,7 @@ export function PaymentHistory({ payments, onPay, onCancel, isLoading }: Props) 
             </motion.div>
           ) : (
             [...payments]
-              .sort((a, b) => new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime())
+              .sort((a, b) => getPaymentTimeMs(b.expiresAt) - getPaymentTimeMs(a.expiresAt))
               .map((payment) => (
                 <motion.div
                   key={payment.id}

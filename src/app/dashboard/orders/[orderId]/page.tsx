@@ -12,6 +12,7 @@ import { getProducts } from '@/services/products/product.service';
 import type { ProductDTO } from '@/types/api';
 import { formatShortId } from '@/lib/ids';
 import { ORDER_STATUS_DESCRIPTION, ORDER_STATUS_LABEL } from '@/lib/orderStatus';
+import { isPaymentExpired } from '@/lib/paymentTime';
 
 const STATUS_STYLE = {
   PENDING: 'bg-yellow-300 text-black',
@@ -38,9 +39,9 @@ export default function OrderDetailPage() {
   const activePayment = payments.find((item) => {
     if (item.orderId !== orderId) return false;
     if (item.status !== 'PENDING') return item.status === 'SUCCESS';
-    return !item.expiresAt || Date.now() < new Date(item.expiresAt).getTime();
+    return !isPaymentExpired(item.expiresAt);
   });
-  const expiredPayment = payments.find((item) => item.orderId === orderId && item.status === 'PENDING' && item.expiresAt && Date.now() >= new Date(item.expiresAt).getTime());
+  const expiredPayment = payments.find((item) => item.orderId === orderId && item.status === 'PENDING' && isPaymentExpired(item.expiresAt));
   const cancelledPayment = payments.find((item) => item.orderId === orderId && item.status === 'CANCELLED');
   const paymentLocked = Boolean(order?.orderStatus === 'CANCELLED' || expiredPayment);
   const product = useMemo(
